@@ -10,7 +10,6 @@ with get_platform as (
     FROM s3_audience.audience_activity
     WHERE dt between 20210211 and 20210224
       AND destination = 'PS_IPLAYER'
-    LIMIT 10
 ),
      get_hid as (
          SELECT distinct dt, unique_visitor_cookie_id, visit_id, hashed_id
