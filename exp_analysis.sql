@@ -20,7 +20,9 @@ SELECT * FROM central_insights_sandbox.vb_exp_sort_featured_binge_module_impress
 -- All users -- this includes everyone who never viewed content
 DROP TABLE IF EXISTS central_insights_sandbox.vb_exp_users;
 CREATE TABLE central_insights_sandbox.vb_exp_users AS
-SELECT * FROM dataforce_sandbox.vb_exp_1178_users ; -- this will need to be the name of the current experiment
+SELECT * FROM dataforce_sandbox.vb_exp_1178_users; -- this will need to be the name of the current experiment
+GRANT ALL on central_insights_sandbox.vb_exp_users to group central_insights_server;
+DELETE FROM central_insights_sandbox.vb_exp_users WHERE age_range ISNULL;
 
 ---- Make sure anyone can use these tables
 GRANT SELECT ON central_insights_sandbox.vb_exp_actions  TO GROUP dataforce_analysts;
@@ -62,18 +64,18 @@ with user_stats AS (
 ),
      module_stats AS (
          -- Get the number of clicks and starts/watched from each module on homepage
-         SELECT
-             app_type,
-             exp_group,
-             sum(start_flag)   AS starts,
-             sum(complete_flag) as completes,
-             count(visit_id)   AS module_clicks
+         SELECT app_type,
+                exp_group,
+                count(visit_id)    AS module_clicks,
+                sum(start_flag)    AS starts,
+                sum(complete_flag) as completes
+
          FROM central_insights_sandbox.vb_exp_actions
          WHERE click_placement = 'home_page' --homepage
-          AND (click_container = 'module-editorial-featured' or click_container = 'module-editorial-new-trending')
-         --AND click_container = 'module-recommendations-recommended-for-you'
-         --AND click_container = 'module-watching-continue-watching'
-         GROUP BY 1,2
+           AND (click_container = 'module-editorial-featured' or click_container = 'module-editorial-new-trending')
+           --AND click_container = 'module-recommendations-recommended-for-you'
+           --AND click_container = 'module-watching-continue-watching'
+         GROUP BY 1, 2
      )
 SELECT
     a.platform,
@@ -89,6 +91,56 @@ FROM user_stats a
 ORDER BY a.platform,
          a.exp_group
 ;
+
+------------------------------ Step 9: Data for R Statistical Analysis --------------------------------------------
+-- Get data in right structure of stats analysis
+DROP TABLE IF EXISTS central_insights_sandbox.vb_exp_R_output;
+CREATE TABLE central_insights_sandbox.vb_exp_R_output AS
+with module_metrics AS ( --get starts/completes on modules
+    SELECT exp_group,
+           age_range,
+           hashed_id,
+           sum(start_flag)    AS starts,
+           sum(complete_flag) as completes
+    FROM central_insights_sandbox.vb_exp_actions
+    WHERE (click_container = 'module-editorial-featured' or click_container = 'module-editorial-new-trending')-- module of interest
+      AND click_placement = 'home_page'
+    GROUP BY 1, 2, 3
+),
+     users AS (
+         SELECT distinct exp_group, age_range, hashed_id from central_insights_sandbox.vb_exp_users
+     )
+SELECT row_number() over () as row_count,a.exp_group, a.age_range, a.hashed_id, isnull(b.starts, 0) as starts, isnull(b.completes, 0) as completes
+FROM users a
+         LEFT JOIN module_metrics b on a.hashed_id = b.hashed_id and a.exp_group = b.exp_group
+;
+GRANT ALL on central_insights_sandbox.vb_exp_R_output to group central_insights_server;
+DELETE FROM central_insights_sandbox.vb_exp_R_output WHERE age_range ISNULL;
+SELECT min(row_count), max(row_count) FROM central_insights_sandbox.vb_exp_R_output limit 10;
+
+SELECT age_range, count(distinct hashed_id) FROM central_insights_sandbox.vb_exp_R_output group by 1;
+with user_count as (SELECT *, row_number() over (partition by hashed_id) as dup_count
+                    FROM central_insights_sandbox.vb_exp_R_output)
+SELECT dup_count, count(*)
+from user_count
+group by 1;
+SELECT * FROM central_insights_sandbox.vb_exp_R_output;
+
+
+
+
+
+
+
+
+
+
+
+
+
+--- Old
+
+
 -------- Impressions to the specific module ---------
 SELECT a.platform, exp_group, count(DISTINCT a.dt||a.visit_id) AS visits_saw_module
 FROM central_insights_sandbox.vb_exp_impr a
@@ -117,7 +169,7 @@ with user_stats AS (
                 exp_group,
                 age_range,
                 sum(start_flag)   AS starts,
-                sum(complete_flag) as num_watched,
+                sum(complete_flag) as completes,
                 count(visit_id)   AS module_clicks
          FROM central_insights_sandbox.vb_exp_actions
          WHERE click_placement = 'home_page' --homepage
@@ -130,7 +182,7 @@ SELECT a.platform,
        hids AS signed_in_users,
        visits,
        starts,
-       num_watched,
+       completes,
        module_clicks
 FROM user_stats a
          JOIN module_stats b ON a.exp_group = b.exp_group
@@ -154,7 +206,7 @@ ORDER BY 1;
 
 SELECT exp_group,
        sum(start_flag)   as starts,
-       sum(complete_flag) as num_watched,
+       sum(complete_flag) as completes,
        count(visit_id) AS num_clicks
 FROM central_insights_sandbox.vb_exp_actions
 WHERE click_container = 'module-recommendations-recommended-for-you'
@@ -163,8 +215,7 @@ GROUP BY 1
 ORDER BY 1;
 
 
------------------------------- Step 9: Data for R Statistical Analysis --------------------------------------------
--- Get data in right structure of stats analysis
+
 DROP TABLE IF EXISTS vb_rec_exp_results;
 CREATE TEMP TABLE vb_rec_exp_results AS
 with module_metrics AS (
@@ -172,9 +223,9 @@ with module_metrics AS (
            age_range,
            hashed_id,
            sum(start_flag)   AS starts,
-           sum(complete_flag) as num_watched
+           sum(complete_flag) as completes
     FROM central_insights_sandbox.vb_exp_actions
-    WHERE click_container = 'module-editorial-featured'-- module of interest
+    WHERE (click_container = 'module-editorial-featured' or click_container = 'module-editorial-new-trending')-- module of interest
       AND click_placement = 'home_page'
     GROUP BY 1, 2,3
 )
@@ -184,7 +235,7 @@ SELECT DISTINCT a.exp_group,
                 a.frequency_band,
                 a.frequency_group_aggregated,
                 ISNULL(b.starts, 0)  as starts,
-                ISNULL(b.num_watched, 0) AS num_watched
+                ISNULL(b.completes, 0) AS completes
 FROM central_insights_sandbox.vb_rec_exp_ids_hid a -- get all users, even those who didn't click
          LEFT JOIN module_metrics b --Gives each user and their total starts/watched from that module
                    on a.hashed_id = b.hashed_id AND a.exp_group = b.exp_group AND a.age_range  = b.age_range
@@ -193,12 +244,12 @@ FROM central_insights_sandbox.vb_rec_exp_ids_hid a -- get all users, even those 
 SELECT * FROM vb_rec_exp_results LIMIT 10;
 -- Tables for R
 --control
-SELECT hashed_id, starts, num_watched FROM vb_rec_exp_results
+SELECT hashed_id, starts, completes FROM vb_rec_exp_results
 WHERE exp_group = 'control'
 --AND age_range = '35+'
 ;
 --variation_1
-SELECT hashed_id, starts, num_watched FROM vb_rec_exp_results
+SELECT hashed_id, starts, completes FROM vb_rec_exp_results
 WHERE exp_group = 'variation_1'
 --AND age_range = '35+'
 ;
@@ -213,7 +264,7 @@ with module_metrics AS (
            click_container,
            click_placement,
            sum(start_flag)   AS starts,
-           sum(complete_flag) as num_watched
+           sum(complete_flag) as completes
     FROM central_insights_sandbox.vb_exp_actions
     WHERE exp_group = 'control'
       AND dt BETWEEN 20200727 AND 20200802
@@ -229,7 +280,7 @@ SELECT DISTINCT b.click_container,
                 b.click_placement,
                 a.hashed_id,
                 ISNULL(b.starts, 0)  as starts,
-                ISNULL(b.num_watched, 0) AS num_watched
+                ISNULL(b.completes, 0) AS completes
 FROM dist_users a -- get all users, even those who didn't click
          LEFT JOIN module_metrics b --Gives each user and their total starts/watched from that module
                    on a.hashed_id = b.hashed_id
@@ -240,7 +291,7 @@ with
      -- compltes from featured rail
      featured AS
     (
-    SELECT hashed_id, num_watched AS completes_featured
+    SELECT hashed_id, completes AS completes_featured
     FROM vb_exp_temp
     WHERE click_container = 'module-editorial-featured'
     AND click_placement = 'home_page'
@@ -248,7 +299,7 @@ with
 ),
      --completes from bingewothy rails
      binge AS (
-    SELECT hashed_id, sum(num_watched) AS completes_binge
+    SELECT hashed_id, sum(completes) AS completes_binge
     FROM vb_exp_temp
     WHERE click_container ILIKE '%binge%'
          AND click_placement = 'home_page'
@@ -256,7 +307,7 @@ with
 
 ),
     homepage AS (
-    SELECT DISTINCT hashed_id, sum(num_watched) AS completes_homepage
+    SELECT DISTINCT hashed_id, sum(completes) AS completes_homepage
     FROM vb_exp_temp
         WHERE click_placement = 'home_page'
         GROUP BY 1
@@ -282,7 +333,7 @@ with module_metrics AS (
     SELECT click_think_group,
            hashed_id,
            sum(start_flag)   AS starts,
-           sum(complete_flag) as num_watched
+           sum(complete_flag) as completes
     FROM central_insights_sandbox.vb_exp_actions
     WHERE click_container = 'module-recommendations-recommended-for-you'
       AND click_placement = 'home_page'
@@ -292,11 +343,11 @@ with module_metrics AS (
          SELECT DISTINCT a.hashed_id,
                          b.click_think_group,
                          ISNULL(b.starts, 0)  as starts,
-                         ISNULL(b.num_watched, 0) AS num_watched
+                         ISNULL(b.completes, 0) AS completes
          FROM central_insights_sandbox.vb_rec_exp_ids_hid a
                   LEFT JOIN module_metrics b
                             on a.hashed_id = b.hashed_id)
-SELECT click_think_group, count(hashed_id) as num_clicks, sum(starts) as starts, sum(num_watched) as num_watched
+SELECT click_think_group, count(hashed_id) as num_clicks, sum(starts) as starts, sum(completes) as completes
 FROM user_stats
 GROUP BY 1;
 ;
@@ -319,7 +370,7 @@ with user_stats AS (
              platform,
              exp_group,
              sum(start_flag)   AS starts,
-             sum(complete_flag) as num_watched,
+             sum(complete_flag) as completes,
              count(visit_id)   AS num_clicks
          FROM central_insights_sandbox.vb_exp_actions
          GROUP BY 1,2
@@ -330,7 +381,7 @@ SELECT
     hids AS signed_in_users,
     visits,
     starts,
-    num_watched,
+    completes,
     num_clicks
 FROM user_stats a
          JOIN module_stats b ON a.exp_group = b.exp_group AND
