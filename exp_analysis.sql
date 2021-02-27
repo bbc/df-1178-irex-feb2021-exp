@@ -13,9 +13,9 @@ SELECT * FROM dataforce_sandbox.vb_exp_1178_actions; -- this will need to be the
 SELECT * FROM central_insights_sandbox.vb_exp_actions LIMIT 10;
 
 -- Impressions
-DROP TABLE IF EXISTS central_insights_sandbox.vb_exp_impr;
-CREATE TABLE central_insights_sandbox.vb_exp_impr AS
-SELECT * FROM central_insights_sandbox.vb_exp_sort_featured_binge_module_impressions ; -- this will need to be the name of the current experiment
+--DROP TABLE IF EXISTS central_insights_sandbox.vb_exp_impr;
+--CREATE TABLE central_insights_sandbox.vb_exp_impr AS
+--SELECT * FROM central_insights_sandbox.vb_exp_sort_featured_binge_module_impressions ; -- this will need to be the name of the current experiment
 
 -- All users -- this includes everyone who never viewed content
 DROP TABLE IF EXISTS central_insights_sandbox.vb_exp_users;
@@ -26,7 +26,7 @@ DELETE FROM central_insights_sandbox.vb_exp_users WHERE age_range ISNULL;
 
 ---- Make sure anyone can use these tables
 GRANT SELECT ON central_insights_sandbox.vb_exp_actions  TO GROUP dataforce_analysts;
-GRANT SELECT ON central_insights_sandbox.vb_exp_impr TO GROUP dataforce_analysts;
+--GRANT SELECT ON central_insights_sandbox.vb_exp_impr TO GROUP dataforce_analysts;
 GRANT SELECT ON central_insights_sandbox.vb_exp_users TO GROUP dataforce_analysts;
 
 
@@ -91,26 +91,87 @@ FROM user_stats a
 ORDER BY a.platform,
          a.exp_group
 ;
+---- hids, visits, starts, completes to the required module
+with user_stats AS (
+    -- get the number of users and visits for everyone in the experiment
+    SELECT
+        exp_group,
+           CASE --set ages as needed for analysis
+               WHEN age_range = '35-44' OR age_range = '45-54' or age_range = '55+' OR age_range = 'unknown' THEN '35+'
+               ELSE age_range END as age_range,
+        count(distinct hashed_id)                   as hids,
+        count(distinct dt || hashed_id || visit_id) AS visits
+    FROM central_insights_sandbox.vb_exp_users
+    GROUP BY 1,2
+),
+     module_stats AS (
+         -- Get the number of clicks and starts/watched from each module on homepage
+         SELECT
+                exp_group,
+                CASE --set ages as needed for analysis
+               WHEN age_range = '35-44' OR age_range = '45-54' or age_range = '55+' OR age_range = 'unknown' THEN '35+'
+               ELSE age_range END as age_range,
+                count(visit_id)    AS module_clicks,
+                sum(start_flag)    AS starts,
+                sum(complete_flag) as completes
 
+         FROM central_insights_sandbox.vb_exp_actions
+         WHERE click_placement = 'home_page' --homepage
+           AND (click_container = 'module-editorial-featured' or click_container = 'module-editorial-new-trending')
+           --AND click_container = 'module-recommendations-recommended-for-you'
+           --AND click_container = 'module-watching-continue-watching'
+         GROUP BY 1,2
+     )
+SELECT
+    a.exp_group,
+       a.age_range,
+    hids AS signed_in_users,
+    visits,
+    starts,
+    completes,
+    module_clicks
+FROM user_stats a
+         LEFT JOIN module_stats b ON a.exp_group = b.exp_group and a.age_range = b.age_range
+ORDER BY
+         a.exp_group
+;
 ------------------------------ Step 9: Data for R Statistical Analysis --------------------------------------------
 -- Get data in right structure of stats analysis
+/*
+ 1. select age groups needed
+ 2. select click container needed
+ */
 DROP TABLE IF EXISTS central_insights_sandbox.vb_exp_R_output;
 CREATE TABLE central_insights_sandbox.vb_exp_R_output AS
 with module_metrics AS ( --get starts/completes on modules
     SELECT exp_group,
-           age_range,
+           CASE --set ages as needed for analysis
+               WHEN age_range = '35-44' OR age_range = '45-54' or age_range = '55+' OR age_range = 'unknown' THEN '35+'
+               ELSE age_range END as age_range,
            hashed_id,
-           sum(start_flag)    AS starts,
-           sum(complete_flag) as completes
+           sum(start_flag)        AS starts,
+           sum(complete_flag)     as completes
     FROM central_insights_sandbox.vb_exp_actions
     WHERE (click_container = 'module-editorial-featured' or click_container = 'module-editorial-new-trending')-- module of interest
       AND click_placement = 'home_page'
     GROUP BY 1, 2, 3
 ),
      users AS (
-         SELECT distinct exp_group, age_range, hashed_id from central_insights_sandbox.vb_exp_users
+         SELECT distinct exp_group,
+                         CASE --set ages as needed for analysis
+                             WHEN age_range = '35-44' OR age_range = '45-54' or age_range = '55+' OR
+                                  age_range = 'unknown' THEN '35+'
+                             ELSE age_range END as age_range
+                 ,
+                         hashed_id
+         from central_insights_sandbox.vb_exp_users
      )
-SELECT row_number() over () as row_count,a.exp_group, a.age_range, a.hashed_id, isnull(b.starts, 0) as starts, isnull(b.completes, 0) as completes
+SELECT --row_number() over ()   as row_count,
+       a.exp_group,
+       a.age_range,
+       a.hashed_id,
+       isnull(b.starts, 0)    as starts,
+       isnull(b.completes, 0) as completes
 FROM users a
          LEFT JOIN module_metrics b on a.hashed_id = b.hashed_id and a.exp_group = b.exp_group
 ;
