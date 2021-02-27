@@ -95,9 +95,9 @@ for(comp_col in 2:ncol(var_totals)){
 }
 }
 uplift_values
-uplift_values<- uplift_values %>%filter(variable !=comparison)%>%
-   spread(key = comparison, value = uplift) %>%
-   mutate
+uplift_values<- uplift_values %>%filter(variable !=comparison)
+#%>%
+ #  spread(key = comparison, value = uplift) 
 uplift_values
 
 #get p-values for significance
@@ -112,6 +112,12 @@ pValueDF<- pValueDF %>%
    mutate(significance =  ifelse(p_value < 0.05  & p_value > 0.0, "Significant", "Not Significant")
           )
 pValueDF
+
+stats_results<- pValueDF %>% 
+   filter(variable != comparison & p_value != 'NA')%>%
+   left_join(uplift_values, 
+                       by = c("variable"="variable", 
+                              "comparison"="comparison"))
 
 #put into nice table
 
