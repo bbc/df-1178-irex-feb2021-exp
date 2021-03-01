@@ -72,8 +72,8 @@ with user_stats AS (
 
          FROM central_insights_sandbox.vb_exp_actions
          WHERE click_placement = 'home_page' --homepage
-           AND (click_container = 'module-editorial-featured' or click_container = 'module-editorial-new-trending')
-           --AND click_container = 'module-recommendations-recommended-for-you'
+           --AND (click_container = 'module-editorial-featured' or click_container = 'module-editorial-new-trending')
+           AND click_container ILIKE '%binge%'
            --AND click_container = 'module-watching-continue-watching'
          GROUP BY 1, 2
      )
@@ -117,9 +117,8 @@ with user_stats AS (
 
          FROM central_insights_sandbox.vb_exp_actions
          WHERE click_placement = 'home_page' --homepage
-           AND (click_container = 'module-editorial-featured' or click_container = 'module-editorial-new-trending')
-           --AND click_container = 'module-recommendations-recommended-for-you'
-           --AND click_container = 'module-watching-continue-watching'
+           --AND (click_container = 'module-editorial-featured' or click_container = 'module-editorial-new-trending')
+         AND click_container ILIKE '%binge%'
          GROUP BY 1,2
      )
 SELECT
@@ -152,7 +151,8 @@ with module_metrics AS ( --get starts/completes on modules
            sum(start_flag)        AS starts,
            sum(complete_flag)     as completes
     FROM central_insights_sandbox.vb_exp_actions
-    WHERE (click_container = 'module-editorial-featured' or click_container = 'module-editorial-new-trending')-- module of interest
+    WHERE click_container ILIKE '%binge%'
+          --(click_container = 'module-editorial-featured' or click_container = 'module-editorial-new-trending')-- module of interest
       AND click_placement = 'home_page'
     GROUP BY 1, 2, 3
 ),
@@ -177,11 +177,11 @@ FROM users a
 ;
 GRANT ALL on central_insights_sandbox.vb_exp_R_output to group central_insights_server;
 DELETE FROM central_insights_sandbox.vb_exp_R_output WHERE age_range ISNULL;
+
 SELECT min(row_count), max(row_count) FROM central_insights_sandbox.vb_exp_R_output limit 10;
 
 SELECT age_range, count(distinct hashed_id) FROM central_insights_sandbox.vb_exp_R_output group by 1;
-with user_count as (SELECT *, row_number() over (partition by hashed_id) as dup_count
-                    FROM central_insights_sandbox.vb_exp_R_output)
+with user_count as (SELECT *, row_number() over (partition by hashed_id) as dup_count FROM central_insights_sandbox.vb_exp_R_output)
 SELECT dup_count, count(*)
 from user_count
 group by 1;
