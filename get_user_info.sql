@@ -51,7 +51,7 @@ FROM exp_user a
          LEFT JOIN get_platform c on a.dt = c.dt and a.visit_id = c.visit_id
          LEFT JOIN get_age d on b.hashed_id = d.bbc_hid3
 ;
-
+DELETE FROM dataforce_sandbox.vb_exp_1178_users  WHERE age_range = 'under 13' OR age_range = '14-16';
 
 SELECT * FROM dataforce_sandbox.vb_exp_1178_users limit 19;
 SELECT age_range, count(distinct hashed_id) as hids, count(distinct dt||visit_id) as visits
@@ -61,6 +61,7 @@ ORDER BY 1;
 
 
 ---Get all the user's behaviours
+DROP TABLE IF EXISTS dataforce_sandbox.vb_exp_1178_actions;
 CREATE TABLE dataforce_sandbox.vb_exp_1178_actions as
 SELECT a.*, b.exp_group
 FROM central_insights_sandbox.vb_journey_start_watch_complete a
