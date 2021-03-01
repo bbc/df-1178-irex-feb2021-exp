@@ -1,26 +1,36 @@
 # Experimentation Significance Calculator
-# Updated 26/02/2021
-
-# What does this script do? 
-## 1. Calculates the total values for each experiment group per metric provided
-## 2. Calculates whether differences seen between groups are significant
-## 3. Produces summary table and plots to visualise results
-
-
+# Updated 28/02/2021
 # This script replaces the previous 'significance calculator for total metrics.R' script
 
-# Set Up -
-#rm(list=ls())
+############################ What does this script do? ############################
+## 1. Clear environment, set working directory, rail name (this will go into the final file name), read in data file (you need to specify this file name)
+## 2. Defines all the functions needed
+## 3. Removed child age groups if they've made it in.
+## 4. Analyse the data. 
+   #4a. Take the users in the age range required and remove that age_range column.
+   #4b. Remove outliers from that data
+   #4c. Calcualte the totals for each variant.
+   #4d. Calcualte the uplift for each variant pair. 
+   #4e. Find the p-value and give significance for each variant pair comparison
+   #4f. Repeat this for each metric(starts/completes) and each age range.
+#5. Repeat step 4 for all ages with no age split.
+#6. Write results to file
 
-# This script runs packages and custom functions required for experiment analysis
-#source("~/Documents/GitHub/data-force-analysis-snippets/R/experimentation/expSetUp.R")
+### Output ###
+#1. df stats_results_combined - this gives all the variants and their significance and uplift
+#2. dt var_totals_combined - this is the total starts/completes per variant and age group - this is outliwers removed so will be different from the Redshift values.
+#3. The stats_results_combined df as a .csv file.
 
-# Set Working Directory
+############################ SET UP ############################
+rm(list=ls()) #Clear Environment
+getwd() #"~/Documents/plot_folder"
 #setwd("~/Documents/GitHub/data-force-analysis-snippets/R/experimentation/")
 
-# Set name of folder where you want to save plots and summary data
-results_folder <- getwd() #"~/Documents/plot_folder"
-setwd(results_folder)
+rail_name<-"binge-worthy" #this is used for the output file name so select a useful name
+
+data<-read.csv("vb_exp_r_output_binge-worthy.csv") #This is the name of the file you've got from redshift. #Format hashed_id, exp_group, metric 1, metric 2... etc
+head(data)
+
 ############################ Define functions #####################
 ######### Get Packages #########
 # Function to install package if not present. If present, load.
@@ -167,7 +177,7 @@ analyse<-function (experiment,age,analysis_number){
 ############################ Read in data #####################
 # STEP TO IMPROVE: Could load data directly from Redshift
 #Format hashed_id, exp_group, metric 1, metric 2... etc
-experiment_data <- read.csv("vb_exp_r_output_editorial_new_trending.csv") %>% 
+experiment_data <- data %>% 
    filter(age_range != 'under 13'& age_range != '14-16' & age_range !='') #remove ages not needed
 head(experiment_data)
 
@@ -195,13 +205,13 @@ for(row in 1:nrow(ages)) {
    analyse(experiment,ages$age_range[row], row)
 }
 #Repeat for all 16+ with no age split
+print("all 16+")
 experiment <- experiment_data %>%select(-age_range)#select just the age range needed
 experiment <- experiment %>% select(hashed_id, exp_group, everything()) #order columns
 analyse(experiment,'all 16+', 2) #This 2 is just any value not = 1
 
-
-
-#write.csv(total, paste0("summary_data.csv"), row.names = FALSE)
+head(stats_results_combined)
+write.csv(stats_results_combined, paste0("stats_results_",rail_name,".csv"), row.names = FALSE)
 
 # Summary --------------------------------------------------------------
 # Nice summary table showing means for each metric by experiment group, uplift and significance
