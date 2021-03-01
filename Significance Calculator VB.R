@@ -56,9 +56,6 @@ getPackage("kableExtra")
 #This function will remove outliers greater than than 3 standard deviations away from the mean ###
 remove_outliers <- function (df) {
    y <- df[2][df[2] > 0] #remove any zero values
-   # print(paste0("mean = ", mean(y)))
-   # print(paste0("3sd = ",3*sd(y)))
-   # print(paste0("3sd + mean = ", 3*sd(y) + mean(y)))
    dfNoOutliers<- df%>% filter(df[2]< 3*sd(y) + mean(y)) #remove any outliers
    valsremaining <- length(dfNoOutliers)/length(df)
    valsremaining
@@ -79,8 +76,7 @@ remove_outliers <- function (df) {
 get_uplift<- function(var_totals){
    #create empty df to fill
    uplift_values<- data.frame(variable = character(), comparison = character(), uplift = numeric())
-   uplift_values
-   
+
    for(var_col in 2:ncol(var_totals)) {
       for(comp_col in 2:ncol(var_totals)){
          uplift <- data.frame( variable = colnames(var_totals)[var_col],
@@ -131,7 +127,6 @@ get_variant_totals<-function(exp_data, exp_cleaned, metric_col){
       group_by(metric, exp_group) %>%
       summarise(total = sum(metric_value),.groups = 'drop') %>%
       spread(exp_group, total)
-   
    return(totals)
 }
 
@@ -139,9 +134,9 @@ get_variant_totals<-function(exp_data, exp_cleaned, metric_col){
 ######### Remove outliers, calcualte uplift and statistical significance for each metric #########
 analyse<-function (experiment,age,analysis_number){
    for(col in 3:ncol(experiment)){
-     
-      exp_cleaned<<-remove_outliers(experiment %>% select(hashed_id, colnames(experiment)[col], exp_group))
+      exp_cleaned<-remove_outliers(experiment %>% select(hashed_id, colnames(experiment)[col], exp_group))
       names(exp_cleaned)[2]<- 'metric_value'
+      
       if (col ==3 & analysis_number == 1){
          var_totals <- get_variant_totals(exp_data = experiment,exp_cleaned, col)
          uplift_values<-get_uplift(var_totals)
@@ -155,11 +150,10 @@ analyse<-function (experiment,age,analysis_number){
       else{
 
          var_totals<-get_variant_totals(exp_data = experiment,exp_cleaned, col)
-
          uplift_values<-get_uplift(var_totals)
          pValueDF<-get_p_values(exp_data = experiment,col)
          stats_results<-create_stats_results(exp_df = experiment,pValueDF, uplift_values, col)
-         
+
          var_totals_combined<- var_totals_combined %>% bind_rows(data.frame(age_range = age) %>% bind_cols(var_totals))
          stats_results_combined<- stats_results_combined %>% bind_rows(data.frame(age_range = age) %>% bind_cols(stats_results))
       }
@@ -178,7 +172,6 @@ analyse_rail<- function(rail_name, data_path)
    
    #Read in the data 
    experiment_data <<- read.csv(paste0(data_path,".csv"))
-   print(head(experiment_data))
    
    #Run a few checks 
    #1.Check what metrics there are
@@ -222,4 +215,4 @@ analyse_rail<- function(rail_name, data_path)
 ################### Run analysis for each homepage rail ################### 
 #data should be of the format hashed_id, exp_group, metric 1, metric 2... etc and be saved in a .csv file
 analyse_rail(rail_name = "binge-worthy", data_path =  "vb_exp_r_output_binge-worthy")
-analyse_rail(rail_name = "editorial-new-trending", data_path =  "vb_exp_r_output_editorial_new_trending")
+#analyse_rail(rail_name = "editorial-new-trending", data_path =  "vb_exp_r_output_editorial_new_trending")
