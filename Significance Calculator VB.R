@@ -26,10 +26,6 @@ rm(list=ls()) #Clear Environment
 getwd() #"~/Documents/plot_folder"
 #setwd("~/Documents/GitHub/data-force-analysis-snippets/R/experimentation/")
 
-rail_name<-"binge-worthy" #this is used for the output file name so select a useful name
-
-data<-read.csv("vb_exp_r_output_binge-worthy.csv") #This is the name of the file you've got from redshift. #Format hashed_id, exp_group, metric 1, metric 2... etc
-head(data)
 
 ############################ Define functions #####################
 ######### Get Packages #########
@@ -98,9 +94,9 @@ get_uplift<- function(var_totals){
 }
 
 ######### get p-values for significance #########
-get_p_values<-function(metric_col){
-   pValues<- pairwise.t.test(experiment[,metric_col],
-                             experiment$exp_group,
+get_p_values<-function(exp_data, metric_col){
+   pValues<- pairwise.t.test(exp_data[,metric_col],
+                             exp_data$exp_group,
                              p.adj = "bonf")
    pValueDF<-data.frame(pValues$p.value)
    pValueDF<- pValueDF %>% 
@@ -113,13 +109,13 @@ get_p_values<-function(metric_col){
 }
 
 ######### Create statistical results table #########
-create_stats_results<- function(pValueDF, uplift_values, metric_col){
+create_stats_results<- function(exp_df, pValueDF, uplift_values, metric_col){
    stats_results<- 
       pValueDF %>% 
       left_join(uplift_values, 
                 by = c("variable"="variable", 
                        "comparison"="comparison"))%>%
-      mutate(metric = colnames(experiment)[metric_col],
+      mutate(metric = colnames(exp_df)[metric_col],
              performance = ifelse( uplift > 0, 
                                    paste0(variable, " outperformed ", comparison),
                                    paste0(comparison, " outperformed ", variable) )
@@ -129,11 +125,11 @@ create_stats_results<- function(pValueDF, uplift_values, metric_col){
 }
 
 ######### Sum the total values of the metric for each variant #########
-get_variant_totals<-function(exp_cleaned, metric_col){
+get_variant_totals<-function(exp_data, exp_cleaned, metric_col){
    totals<- exp_cleaned %>%
-      mutate(metric = colnames(experiment)[metric_col]) %>%
+      mutate(metric = colnames(exp_data)[metric_col]) %>%
       group_by(metric, exp_group) %>%
-      summarise(total = sum(metric_value)) %>%
+      summarise(total = sum(metric_value),.groups = 'drop') %>%
       spread(exp_group, total)
    
    return(totals)
@@ -143,25 +139,26 @@ get_variant_totals<-function(exp_cleaned, metric_col){
 ######### Remove outliers, calcualte uplift and statistical significance for each metric #########
 analyse<-function (experiment,age,analysis_number){
    for(col in 3:ncol(experiment)){
-      
-      exp_cleaned<-remove_outliers(experiment %>% select(hashed_id, colnames(experiment)[col], exp_group))
+     
+      exp_cleaned<<-remove_outliers(experiment %>% select(hashed_id, colnames(experiment)[col], exp_group))
       names(exp_cleaned)[2]<- 'metric_value'
-      
       if (col ==3 & analysis_number == 1){
-         var_totals <- get_variant_totals(exp_cleaned, col)
+         var_totals <- get_variant_totals(exp_data = experiment,exp_cleaned, col)
          uplift_values<-get_uplift(var_totals)
-         pValueDF<-get_p_values(col)
-         stats_results<-create_stats_results(pValueDF, uplift_values, col)
-         
+         pValueDF<-get_p_values(exp_data = experiment, col)
+         stats_results<-create_stats_results(exp_df = experiment,pValueDF, uplift_values, col)
+
          var_totals_combined<-data.frame(age_range = age) %>% bind_cols(var_totals)
          stats_results_combined<-data.frame(age_range = age) %>% bind_cols(stats_results)
-         
+        
       }
       else{
-         var_totals<-get_variant_totals(exp_cleaned, col)
+
+         var_totals<-get_variant_totals(exp_data = experiment,exp_cleaned, col)
+
          uplift_values<-get_uplift(var_totals)
-         pValueDF<-get_p_values(col)
-         stats_results<-create_stats_results(pValueDF, uplift_values, col)
+         pValueDF<-get_p_values(exp_data = experiment,col)
+         stats_results<-create_stats_results(exp_df = experiment,pValueDF, uplift_values, col)
          
          var_totals_combined<- var_totals_combined %>% bind_rows(data.frame(age_range = age) %>% bind_cols(var_totals))
          stats_results_combined<- stats_results_combined %>% bind_rows(data.frame(age_range = age) %>% bind_cols(stats_results))
@@ -170,49 +167,59 @@ analyse<-function (experiment,age,analysis_number){
    }
    stats_results_combined <<- stats_results_combined
    var_totals_combined <<- var_totals_combined
-   # print(var_totals_combined)
-   # print(stats_results_combined)
+
+   return(stats_results_combined)
 }
 
-############################ Read in data #####################
-# STEP TO IMPROVE: Could load data directly from Redshift
-#Format hashed_id, exp_group, metric 1, metric 2... etc
-experiment_data <- data %>% 
-   filter(age_range != 'under 13'& age_range != '14-16' & age_range !='') #remove ages not needed
-head(experiment_data)
 
-#Check the split across age groups
-experiment_data %>%
-   group_by(age_range)%>%
-   count() %>% 
-   ungroup()%>%
-   mutate(percent= round(prop.table(n) * 100,0))
+analyse_rail<- function(rail_name, data_path)
+{
+   print(rail_name)
+   
+   #Read in the data 
+   experiment_data <<- read.csv(paste0(data_path,".csv"))
+   print(head(experiment_data))
+   
+   #Run a few checks 
+   #1.Check what metrics there are
+   metrics <- names(experiment_data)
+   metrics <<- metrics[!metrics %in% c("hashed_id", "exp_group","age_range")]
+   print(metrics)
+   
+   #2.Check the split across age groups
+   print(
+      experiment_data %>%
+      group_by(age_range)%>%
+      count() %>% 
+      ungroup()%>%
+      mutate(percent= round(prop.table(n) * 100,0))
+   )
+   ages<- data.frame(age_range = experiment_data$age_range %>%unique())%>%arrange(age_range)
+   
+   
+   #Loop over analysis for each age range
+   for(row in 1:nrow(ages)) {
+      print(ages$age_range[row])
+      experiment <- experiment_data %>%filter(age_range == ages$age_range[row]) %>%select(-age_range)#select just the age range needed
+      experiment <- experiment %>% select(hashed_id, exp_group, everything()) #order columns
+      analyse(experiment,ages$age_range[row], row)
 
-ages<- data.frame(age_range = experiment_data$age_range %>%unique())%>%arrange(age_range)
-
-
-##Tell the user their ages and metrics
-metrics <- names(experiment_data)
-metrics <- metrics[!metrics %in% c("hashed_id", "exp_group","age_range")]
-metrics
-ages
-
-#Loop over analysis for each age range
-for(row in 1:nrow(ages)) {
-   print(ages$age_range[row])
-   experiment <- experiment_data %>%filter(age_range == ages$age_range[row]) %>%select(-age_range)#select just the age range needed
+   }
+   #Repeat for all 16+ with no age split
+   print("all 16+")
+   experiment <- experiment_data %>%select(-age_range)#select just the age range needed
    experiment <- experiment %>% select(hashed_id, exp_group, everything()) #order columns
-   analyse(experiment,ages$age_range[row], row)
+   analyse(experiment,'all 16+', 2) #This 2 is just any value not = 1
+   head(stats_results_combined) #Show the resu;ts
+   #Write to file
+   write.csv(stats_results_combined, paste0("stats_results_",rail_name,".csv"), row.names = FALSE)
+   print(paste0("file stats_results_",rail_name,".csv written") )
+   
+   
 }
-#Repeat for all 16+ with no age split
-print("all 16+")
-experiment <- experiment_data %>%select(-age_range)#select just the age range needed
-experiment <- experiment %>% select(hashed_id, exp_group, everything()) #order columns
-analyse(experiment,'all 16+', 2) #This 2 is just any value not = 1
 
-head(stats_results_combined)
-write.csv(stats_results_combined, paste0("stats_results_",rail_name,".csv"), row.names = FALSE)
 
-# Summary --------------------------------------------------------------
-# Nice summary table showing means for each metric by experiment group, uplift and significance
-# This is also in the RMarkdown file, so commented our here unless needed.
+################### Run analysis for each homepage rail ################### 
+#data should be of the format hashed_id, exp_group, metric 1, metric 2... etc and be saved in a .csv file
+analyse_rail(rail_name = "binge-worthy", data_path =  "vb_exp_r_output_binge-worthy")
+analyse_rail(rail_name = "editorial-new-trending", data_path =  "vb_exp_r_output_editorial_new_trending")
