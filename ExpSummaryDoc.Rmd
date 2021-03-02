@@ -1,0 +1,251 @@
+---
+title: "A/B Experiment: iRex 07 February Repeat"
+subtitle: "Summary & Stats Analysis"
+date: "26/02/2021"
+output: html_document
+toc: true
+toc_float: true
+ceruleancss: picture.css
+---
+<br>
+<br>
+
+# {.tabset .tabset-fade}
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(error = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+invisible(gc())
+library(tidyverse)
+library(dbplyr)
+library(knitr)
+library(gridExtra)
+library(grid)
+library(ggplot2)
+library(reshape2)
+library(kableExtra)
+```
+
+
+```{r dataload, include=FALSE}
+# Run the calculator - you should have edited this script in advance to contain the data you need.
+#source(paste0(getwd(),"/Significance Calculator VB.R"))
+```
+
+```{r read_in_data, echo=FALSE}
+
+stats_results_editorial_new_trending<- read.csv(paste0(getwd(),"/stats_results_editorial-new-trending.csv"))
+stats_results_binge_worthy<- read.csv(paste0(getwd(),"/stats_results_binge-worthy.csv"))
+```
+
+
+```{r define_functions, echo=FALSE}
+get_uplift_table<-function(df, age_group, metric_name, comp_var){
+  uplift_table<- df %>%
+    filter(age_range == age_group &
+             comparison %in% comp_var &
+             metric == metric_name) %>% 
+    mutate( uplift2 = ifelse(significance == 'Significant', uplift, 'NA'), #alter table for if value is not significant
+            performance2 = ifelse(significance == 'Significant', performance, 'not significant')) %>%
+    select(-uplift, -performance) %>%
+    rename(uplift = uplift2, performance = performance2)%>%
+    select(variable, comparison, metric, performance, uplift) %>%
+    select(-metric)
+  return(uplift_table)
+}
+```
+## Experiment Summary & Headlines
+
+### Overview
+<br>
+
+#### Hypothesis
+
+<b>IF</b> we sort a list of programmes on the Featured and Binge Worthy series rows using the iRex sorting algorithm
+
+<b>THEN</b> we will increase the consumption of content from these rows
+
+<b>DUE TO</b> the iRex sorting algorithm serving more relevant content on these rows than the current sorting algorithm provided by Think Analytics
+
+<br>
+
+#### Duration & Audience
+The experiment ran for **2 weeks** between **2021-02-11** and **2021-02-24** to **100%** of the audience on homepage. There were 4 variants (control, v1, v2, & v3) with approximately **2.3 million users** in each experiment group. 
+
+<br>
+
+### Headline Results
+
+<br>
+
+##### Editorial New & Trending
+```{r significance_summary_editorial_new_trending, echo=FALSE}
+#See how many variant combinations are significant
+signif_starts<-stats_results_editorial_new_trending %>%
+  filter(metric =='starts') %>% 
+  group_by(significance) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(percent= round(prop.table(n) * 100,0)) %>% 
+  filter(significance == "Significant")
+
+#See how many variant combinations are significant
+signif_completes<-stats_results_editorial_new_trending %>%
+  filter(metric =='completes') %>%
+  group_by(significance) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(percent= round(prop.table(n) * 100,0)) %>%
+  filter(significance == "Significant")
+```
+
+For this homepage module `r if(signif_starts$percent >60 ) {"more"} else {"less"}` than half of the metric comparisons showed significant results for the metric "starts" and `r if(signif_completes$percent >60) {"more"} else {"less"}` than half for the metric "completes".
+
+```{r headline_table_editorial_new_trending, echo=FALSE}
+
+age_range<-'all 16+'
+rail_name<-'Editorial New Trending'
+comparison_var<- c('control') #c('control', 'var1', 'var2', 'var3')
+
+left_join(
+  get_uplift_table(stats_results_editorial_new_trending, age_range, 'starts', comparison_var),
+  get_uplift_table(stats_results_editorial_new_trending, age_range, "completes",comparison_var),
+  by = c("variable" = "variable", "comparison"="comparison")
+) %>%
+  kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift (%)","Performance", "Uplift (%)"), caption = paste0(rail_name,": ",age_range)) %>%
+  add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
+  kable_styling(latex_options =c("striped", "scale_down"))
+
+#    dplyr::mutate(Significance = kableExtra::cell_spec(Sig2ificance,
+#                                                       color = ifelse(Significance == "Significant", "green", "black"),
+#                                                       bold = ifelse(Significance == "Significant", TRUE, FALSE),
+#                                                       background = ifelse(Significance == "Significant", "white", "white"))) %>%
+#    knitr::kable(escape = FALSE) %>%
+#    kableExtra::kable_styling(full_width = F) %>% 
+#    kableExtra::kable_styling(font_size = 12) 
+```
+
+<br>
+<br>
+
+##### Binge-Worthy
+```{r significance_summary_binge_worthy, echo=FALSE}
+#See how many variant combinations are significant
+signif_starts<-stats_results_binge_worthy %>%
+  filter(metric =='starts') %>% 
+  group_by(significance) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(percent= round(prop.table(n) * 100,0)) %>% 
+  filter(significance == "Significant")
+
+#See how many variant combinations are significant
+signif_completes<-stats_results_binge_worthy %>%
+  filter(metric =='completes') %>%
+  group_by(significance) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(percent= round(prop.table(n) * 100,0)) %>%
+  filter(significance == "Significant")
+```
+
+For this homepage module `r if(signif_starts$percent >60 ) {"more"} else {"less"}` than half of the metric comparisons showed significant results for the metric "starts" and `r if(signif_completes$percent >60) {"more"} else {"less"}` than half for the metric "completes".
+
+```{r headline_table_binge_worthy, echo=FALSE}
+
+age_range<-'all 16+'
+rail_name<-'Binge Worthy'
+comparison_var<- c('control') #c('control', 'var1', 'var2', 'var3')
+
+left_join(
+  get_uplift_table(stats_results_binge_worthy, age_range, 'starts', comparison_var),
+  get_uplift_table(stats_results_binge_worthy, age_range, "completes",comparison_var),
+  by = c("variable" = "variable", "comparison"="comparison")
+) %>%
+  kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift (%)","Performance", "Uplift (%)"), caption = paste0(rail_name,": ",age_range)) %>%
+  add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
+  kable_styling(latex_options =c("striped", "scale_down"))
+
+#    dplyr::mutate(Significance = kableExtra::cell_spec(Sig2ificance,
+#                                                       color = ifelse(Significance == "Significant", "green", "black"),
+#                                                       bold = ifelse(Significance == "Significant", TRUE, FALSE),
+#                                                       background = ifelse(Significance == "Significant", "white", "white"))) %>%
+#    knitr::kable(escape = FALSE) %>%
+#    kableExtra::kable_styling(full_width = F) %>% 
+#    kableExtra::kable_styling(font_size = 12) 
+```
+
+<br>
+<br>
+<br>
+<b>Contact</b> <br>
+email: `dataforce@bbc.co.uk`<br>
+slack: #help-data-force
+
+
+## Editorial New and Trending
+
+<br>
+
+#### Statistical Overview
+
+To assess the difference between our control and variant group we ran a parametric test (t-test) to establish the mean differences between each group for each metric and if the difference is statistically significant.  
+
+
+A p-value < 0.05 indicates the difference is statistically significant, we can reject the null hypothesis and conclude the difference seen is not due to chance.  
+<br>
+<br>
+
+#### Statistical Results by Age Range
+```{r stat results new trending, echo=FALSE, results = "asis"}
+age_ranges<-data.frame(stats_results_editorial_new_trending$age_range) %>%unique()
+
+for(age in 1: nrow(age_ranges)) {
+age_range<-age_ranges[age,1]
+rail_name<-'Editorial New Trending'
+comparison_var<- c('control', 'var1', 'var2', 'var3')
+
+table<-left_join(
+  get_uplift_table(stats_results_editorial_new_trending, age_range, 'starts', comparison_var),
+  get_uplift_table(stats_results_editorial_new_trending, age_range, "completes",comparison_var),
+  by = c("variable" = "variable", "comparison"="comparison")
+) %>%
+  kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift (%)","Performance", "Uplift (%)"), caption = paste0(rail_name,": ",age_range)) %>%
+  add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
+  kable_styling(latex_options =c("striped", "scale_down"))
+print(table)
+}
+
+```
+
+#### Metric Summary
+
+
+
+
+##### Live Plays
+
+
+<br>
+<br>
+
+### Test Duration and Sample Size
+
+<br>
+In the experiment design phase, we calculated the test should run for 2 weeks and reach 400,000 users or more to be able to see a 2% minimum detectable change.  
+<br>
+The experiment met both of these criteria.  
+<br>
+<br>
+
+
+<br>
+<br>
+<br>
+<b>Contact</b> <br>
+email: `dataforce@bbc.co.uk`<br>
+slack: #help-data-force
+
+
