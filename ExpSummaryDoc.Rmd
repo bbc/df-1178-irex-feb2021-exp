@@ -81,7 +81,7 @@ get_uplift_table<-function(df, age_group, metric_name, comp_var){
   return(uplift_table)
 }
 
-#function to sumarise the total starts/clicks/compeltes and join to the number of hids and visits
+#function to sumarise the total starts/clicks/completes and join to the number of hids and visits
 get_summary_values<-function(metric_df, hids_visits_df ){
 summary_values<-
   metric_df %>%
@@ -163,7 +163,7 @@ if(nrow(signif_completes) ==0) {
 For this homepage module `r if(signif_starts$percent ==100 ) {"all of the"} else if(signif_starts$percent <100 & signif_starts$percent >=60) {"most of the"} else if(signif_starts$percent <160 & signif_starts$percent >=100) {"a few of the"} else {"less than 10% of" } `  metric comparisons showed significant results for the metric "starts" and `r if(signif_completes$percent ==100 ) {"all of the"} else if(signif_completes$percent <100 & signif_completes$percent >=60) {"most of the"} else if(signif_completes$percent <160 & signif_completes$percent >=100) {"a few of the"} else {"less than 10% of" } `  metric "completes" comparisons. There were between 1.2 and 1.4 millions clicks on the editorial new & trending rail for each variant, between 710,000 and 810,000 play starts (30s metric) and between 480,000 and 560,000 play completes (90% content competion). A detailed breakdown can be found on the module specific tab.
 
 <br>
-Across all users, **variant three performed the best** with an uplift for play compeltes of 8.8% whilst **variant two performed the worst** at 5.9% below the control.
+Across all users, **variant three performed the best** with an uplift for play completes of 8.8% whilst **variant two performed the worst** at 5.9% below the control.
 
 ```{r headline_table_editorial_new_trending, echo=FALSE}
 
@@ -186,7 +186,7 @@ kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift 
     escape = F) %>%
   add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
   kable_styling(bootstrap_options =c("striped", "scale_down","hover")) %>%
-  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the comparison..")
+  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the comparison.")
 
 ```
 
@@ -223,7 +223,7 @@ For the this homepage module `r if(signif_starts$percent ==100 ) {"all of the"} 
 
 <br>
 
-Across all users, **variant three performed the best** with an uplift for play compeltes of 13.1% whilst **variant two performed the worst** at 21.3% below the control.
+Across all users, **variant three performed the best** with an uplift for play completes of 13.1% whilst **variant two performed the worst** at 21.3% below the control.
 
 ```{r headline_table_binge_worthy, echo=FALSE}
 
@@ -246,7 +246,7 @@ kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift 
     escape = F) %>%
   add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
   kable_styling(bootstrap_options =c("striped", "scale_down","hover")) %>%
-  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the comparison..")
+  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the comparison.")
 
 ```
 <br>
@@ -305,7 +305,7 @@ df$uplift.y<- cell_spec(df$uplift.y, color = ifelse(df$uplift.y == 'NA', 'black'
 #     escape = F) %>%
 #   add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
 #   kable_styling(bootstrap_options =c("striped", "scale_down","hover")) %>%
-#   footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the comparison..")
+#   footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the comparison.")
 
 
 ```
@@ -367,12 +367,14 @@ df$uplift.y<- cell_spec(df$uplift.y, color = ifelse(df$uplift.y == 'NA', 'black'
 #     escape = F) %>%
 #   add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
 #   kable_styling(bootstrap_options =c("striped", "scale_down","hover")) %>%
-#   footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the comparison..")
+#   footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the comparison.")
 
 
 ```
 
 <br>
+
+*******
 
 <br>
 <br>
@@ -396,6 +398,9 @@ A p-value < 0.05 indicates the difference is statistically significant, we can r
 <br>
 
 ### Statistical Results by Age Range
+For most age groups **variant 2 performed the worst for both metrics**, except for the 16-24 age group where there was a tiny uplift for starts. **Variant three showed the highest uplift across both metrics** for all age groups.
+
+
 ```{r stat results new trending, echo=FALSE, results = "asis"}
 age_ranges<-data.frame(stats_results_editorial_new_trending$age_range) %>%unique()
 
@@ -420,7 +425,7 @@ kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift 
     escape = F) %>%
   add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
   kable_styling(bootstrap_options =c("striped", "scale_down","hover")) %>%
-  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the comparison..")
+  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the comparison.")
 
 print(table)
 }
@@ -441,7 +446,7 @@ get_summary_values(var_totals_editorial_new_trending, hids_visits_summary)%>%
       col.names = c('Age Range', "Variant", "Users", "Visits", "Clicks", "Starts", "Completes"),
       caption = paste0(rail_name,": ",age_range),
     escape = F) %>%
-  row_spec(c(1:4,9:12), background = "#f9f8f8")%>%
+  row_spec(c(1:4,9:12), background = "#f3f1f1")%>%
   #kable_styling(bootstrap_options = c("striped", "hover"))
 
 kable_styling(bootstrap_options =c("hover","scale_down"))
@@ -452,6 +457,7 @@ kable_styling(bootstrap_options =c("hover","scale_down"))
 ```
 
 
+*****
 
 
 <br>
