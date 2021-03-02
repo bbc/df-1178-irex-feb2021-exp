@@ -109,22 +109,23 @@ age_range<-'all 16+'
 rail_name<-'Editorial New Trending'
 comparison_var<- c('control') #c('control', 'var1', 'var2', 'var3')
 
-left_join(
+df<-left_join(
   get_uplift_table(stats_results_editorial_new_trending, age_range, 'starts', comparison_var),
   get_uplift_table(stats_results_editorial_new_trending, age_range, "completes",comparison_var),
   by = c("variable" = "variable", "comparison"="comparison")
-) %>%
-  kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift (%)","Performance", "Uplift (%)"), caption = paste0(rail_name,": ",age_range)) %>%
-  add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
-  kable_styling(latex_options =c("striped", "scale_down"))
+)
 
-#    dplyr::mutate(Significance = kableExtra::cell_spec(Sig2ificance,
-#                                                       color = ifelse(Significance == "Significant", "green", "black"),
-#                                                       bold = ifelse(Significance == "Significant", TRUE, FALSE),
-#                                                       background = ifelse(Significance == "Significant", "white", "white"))) %>%
-#    knitr::kable(escape = FALSE) %>%
-#    kableExtra::kable_styling(full_width = F) %>% 
-#    kableExtra::kable_styling(font_size = 12) 
+df$uplift.x<- cell_spec(df$uplift.x, color = ifelse(df$uplift.x == 'NA', 'black',ifelse(df$uplift.x>0, 'green','red')))
+df$uplift.y<- cell_spec(df$uplift.y, color = ifelse(df$uplift.y == 'NA', 'black', ifelse(df$uplift.y > 0, 'green','red')))
+                                                    
+df%>% 
+kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift (%)","Performance", "Uplift (%)"), 
+      caption = paste0(rail_name,": ",age_range),
+    escape = F) %>%
+  add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
+  kable_styling(latex_options =c("striped", "scale_down")) %>%
+  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the control")
+
 ```
 
 <br>
@@ -159,22 +160,23 @@ age_range<-'all 16+'
 rail_name<-'Binge Worthy'
 comparison_var<- c('control') #c('control', 'var1', 'var2', 'var3')
 
-left_join(
-  get_uplift_table(stats_results_binge_worthy, age_range, 'starts', comparison_var),
-  get_uplift_table(stats_results_binge_worthy, age_range, "completes",comparison_var),
+df<-left_join(
+  get_uplift_table(stats_results_editorial_new_trending, age_range, 'starts', comparison_var),
+  get_uplift_table(stats_results_editorial_new_trending, age_range, "completes",comparison_var),
   by = c("variable" = "variable", "comparison"="comparison")
-) %>%
-  kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift (%)","Performance", "Uplift (%)"), caption = paste0(rail_name,": ",age_range)) %>%
-  add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
-  kable_styling(latex_options =c("striped", "scale_down"))
+)
 
-#    dplyr::mutate(Significance = kableExtra::cell_spec(Sig2ificance,
-#                                                       color = ifelse(Significance == "Significant", "green", "black"),
-#                                                       bold = ifelse(Significance == "Significant", TRUE, FALSE),
-#                                                       background = ifelse(Significance == "Significant", "white", "white"))) %>%
-#    knitr::kable(escape = FALSE) %>%
-#    kableExtra::kable_styling(full_width = F) %>% 
-#    kableExtra::kable_styling(font_size = 12) 
+df$uplift.x<- cell_spec(df$uplift.x, color = ifelse(df$uplift.x == 'NA', 'black',ifelse(df$uplift.x>0, 'green','red')))
+df$uplift.y<- cell_spec(df$uplift.y, color = ifelse(df$uplift.y == 'NA', 'black', ifelse(df$uplift.y > 0, 'green','red')))
+                                                    
+df%>% 
+kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift (%)","Performance", "Uplift (%)"), 
+      caption = paste0(rail_name,": ",age_range),
+    escape = F) %>%
+  add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
+  kable_styling(latex_options =c("striped", "scale_down")) %>%
+  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the control")
+
 ```
 
 <br>
@@ -207,20 +209,32 @@ age_range<-age_ranges[age,1]
 rail_name<-'Editorial New Trending'
 comparison_var<- c('control', 'var1', 'var2', 'var3')
 
-table<-left_join(
+
+df<-left_join(
   get_uplift_table(stats_results_editorial_new_trending, age_range, 'starts', comparison_var),
   get_uplift_table(stats_results_editorial_new_trending, age_range, "completes",comparison_var),
   by = c("variable" = "variable", "comparison"="comparison")
-) %>%
-  kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift (%)","Performance", "Uplift (%)"), caption = paste0(rail_name,": ",age_range)) %>%
+)
+
+df$uplift.x<- cell_spec(df$uplift.x, color = ifelse(df$uplift.x == 'NA', 'black',ifelse(df$uplift.x>0, 'green','red')))
+df$uplift.y<- cell_spec(df$uplift.y, color = ifelse(df$uplift.y == 'NA', 'black', ifelse(df$uplift.y > 0, 'green','red')))
+                                                    
+table<-df%>% 
+kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift (%)","Performance", "Uplift (%)"), 
+      caption = paste0(rail_name,": ",age_range),
+    escape = F) %>%
   add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
-  kable_styling(latex_options =c("striped", "scale_down"))
+  kable_styling(latex_options =c("striped", "scale_down")) %>%
+  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the control")
+
 print(table)
 }
 
 ```
 
 #### Metric Summary
+
+
 
 
 
