@@ -12,6 +12,7 @@ ceruleancss: picture.css
 
 # {.tabset .tabset-fade}
 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(error = FALSE)
@@ -117,6 +118,15 @@ The experiment ran for **2 weeks** between **2021-02-11** and **2021-02-24** to 
 
 <br>
 
+#### Test Duration and Sample Size
+
+<br>
+In the experiment design phase, we calculated the test should run for 2 weeks and reach 400,000 users or more to be able to see a 2% minimum detectable change.  
+<br>
+The experiment met both of these criteria.  
+<br>
+<br>
+
 ### Headline Results
 
 <br>
@@ -164,8 +174,8 @@ kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift 
       caption = paste0(rail_name,": ",age_range),
     escape = F) %>%
   add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
-  kable_styling(latex_options =c("striped", "scale_down")) %>%
-  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the control.")
+  kable_styling(bootstrap_options =c("striped", "scale_down","hover")) %>%
+  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the comparison..")
 
 ```
 
@@ -215,10 +225,13 @@ kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift 
       caption = paste0(rail_name,": ",age_range),
     escape = F) %>%
   add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
-  kable_styling(latex_options =c("striped", "scale_down")) %>%
-  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the control.")
+  kable_styling(bootstrap_options =c("striped", "scale_down","hover")) %>%
+  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the comparison..")
 
 ```
+
+<br>
+
 
 <br>
 <br>
@@ -232,7 +245,7 @@ slack: #help-data-force
 
 <br>
 
-#### Statistical Overview
+### Statistical Overview
 
 To assess the difference between our control and variant group we ran a parametric test (t-test) to establish the mean differences between each group for each metric and if the difference is statistically significant.  
 
@@ -241,7 +254,7 @@ A p-value < 0.05 indicates the difference is statistically significant, we can r
 <br>
 <br>
 
-#### Statistical Results by Age Range
+### Statistical Results by Age Range
 ```{r stat results new trending, echo=FALSE, results = "asis"}
 age_ranges<-data.frame(stats_results_editorial_new_trending$age_range) %>%unique()
 
@@ -265,45 +278,45 @@ kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift 
       caption = paste0(rail_name,": ",age_range),
     escape = F) %>%
   add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
-  kable_styling(latex_options =c("striped", "scale_down")) %>%
-  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the control.")
+  kable_styling(bootstrap_options =c("striped", "scale_down","hover")) %>%
+  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the comparison..")
 
 print(table)
 }
 
 ```
 
-#### Metric Summary
+<br>
+
+### Metric Summary
 
 ```{r var totals new trending, echo=FALSE, results = "asis"}
+
 rail_name = "Editorial New and Trending"
 age_range = 'all ages'
 
 get_summary_values(var_totals_editorial_new_trending, hids_visits_summary)%>%
   kbl(booktabs = T, 
-      col.names = c('Age Range', "Variant", "Users", "Visits", "Rail Clicks", "Starts", "Completes"),
+      col.names = c('Age Range', "Variant", "Users", "Visits", "Clicks", "Starts", "Completes"),
       caption = paste0(rail_name,": ",age_range),
     escape = F) %>%
-  kable_styling(latex_options =c("striped", "scale_down"))
+  row_spec(c(1:4,9:12), background = "#f9f8f8")%>%
+  #kable_styling(bootstrap_options = c("striped", "hover"))
+
+kable_styling(bootstrap_options =c("hover","scale_down"))
+
 
 
 
 ```
 
-##### Live Plays
 
 
+
 <br>
 <br>
 
-### Test Duration and Sample Size
 
-<br>
-In the experiment design phase, we calculated the test should run for 2 weeks and reach 400,000 users or more to be able to see a 2% minimum detectable change.  
-<br>
-The experiment met both of these criteria.  
-<br>
-<br>
 
 
 <br>
