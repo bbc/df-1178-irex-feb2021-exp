@@ -39,9 +39,14 @@ library(kableExtra)
 
 stats_results_editorial_new_trending<- read.csv(paste0(getwd(),"/stats_results_editorial-new-trending.csv")) %>%filter(metric != 'clicks')
 stats_results_binge_worthy<- read.csv(paste0(getwd(),"/stats_results_binge-worthy.csv"))%>%filter(metric != 'clicks')
+stats_results_homepage<- read.csv(paste0(getwd(),"/stats_results_whole-homepage.csv"))%>%filter(metric != 'clicks')
+stats_results_product<- read.csv(paste0(getwd(),"/stats_results_whole-product.csv"))%>%filter(metric != 'clicks')
+
 
 var_totals_editorial_new_trending<-read.csv(paste0(getwd(),"/var_totals_editorial-new-trending.csv"))
 var_totals_binge_worthy<-read.csv(paste0(getwd(),"/var_totals_binge-worthy.csv"))
+var_totals_homepage<-read.csv(paste0(getwd(),"/var_totals_whole-homepage.csv"))
+var_totals_product<-read.csv(paste0(getwd(),"/var_totals_whole-product.csv"))
 
 hids_visits_summary<- read.csv(paste0(getwd(),"/hids_visits_summary.csv"))
 
@@ -77,7 +82,7 @@ get_uplift_table<-function(df, age_group, metric_name, comp_var){
 }
 
 #function to sumarise the total starts/clicks/compeltes and join to the number of hids and visits
-get_summary_values<-function(metric_df,hids_visits_df ){
+get_summary_values<-function(metric_df, hids_visits_df ){
 summary_values<-
   metric_df %>%
   mutate(
@@ -114,17 +119,14 @@ return(summary_values)
 <br>
 
 #### Duration & Audience
-The experiment ran for **2 weeks** between **2021-02-11** and **2021-02-24** to **100%** of the audience on homepage. There were 4 variants (control, v1, v2, & v3) with approximately **2.3 million users** in each experiment group. 
+The experiment ran for **2 weeks** between **2021-02-11** and **2021-02-24** to **100%** of the audience on homepage. There were 4 variants (control, v1, v2, & v3) with approximately **2.3 million signed in users** in each experiment group. 
 
 <br>
 
-#### Test Duration and Sample Size
-
-<br>
+#### Test Duration & Sample Size
 In the experiment design phase, we calculated the test should run for 2 weeks and reach 400,000 users or more to be able to see a 2% minimum detectable change.  
 <br>
 The experiment met both of these criteria.  
-<br>
 <br>
 
 ### Headline Results
@@ -141,6 +143,9 @@ signif_starts<-stats_results_editorial_new_trending %>%
   ungroup() %>%
   mutate(percent= round(prop.table(n) * 100,0)) %>% 
   filter(significance == "Significant")
+if(nrow(signif_starts) ==0) {
+  signif_starts<- data.frame(significance = "Significant", n =0, percent = 0)
+}
 
 #See how many variant combinations are significant
 signif_completes<-stats_results_editorial_new_trending %>%
@@ -150,9 +155,15 @@ signif_completes<-stats_results_editorial_new_trending %>%
   ungroup() %>%
   mutate(percent= round(prop.table(n) * 100,0)) %>%
   filter(significance == "Significant")
+if(nrow(signif_completes) ==0) {
+  signif_completes<- data.frame(significance = "Significant", n =0, percent = 0)
+}
 ```
 
-For this homepage module `r if(signif_starts$percent >60 ) {"more"} else {"less"}` than half of the metric comparisons showed significant results for the metric "starts" and `r if(signif_completes$percent >60) {"more"} else {"less"}` than half for the metric "completes".
+For this homepage module `r if(signif_starts$percent ==100 ) {"all of the"} else if(signif_starts$percent <100 & signif_starts$percent >=60) {"most of the"} else if(signif_starts$percent <160 & signif_starts$percent >=100) {"a few of the"} else {"less than 10% of" } `  metric comparisons showed significant results for the metric "starts" and `r if(signif_completes$percent ==100 ) {"all of the"} else if(signif_completes$percent <100 & signif_completes$percent >=60) {"most of the"} else if(signif_completes$percent <160 & signif_completes$percent >=100) {"a few of the"} else {"less than 10% of" } `  metric "completes" comparisons. There were between 1.2 and 1.4 millions clicks on the editorial new & trending rail for each variant, between 710,000 and 810,000 play starts (30s metric) and between 480,000 and 560,000 play completes (90% content competion). A detailed breakdown can be found on the module specific tab.
+
+<br>
+Across all users, **variant three performed the best** with an uplift for play compeltes of 8.8% whilst **variant two performed the worst** at 5.9% below the control.
 
 ```{r headline_table_editorial_new_trending, echo=FALSE}
 
@@ -180,7 +191,6 @@ kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift 
 ```
 
 <br>
-<br>
 
 ##### Binge-Worthy
 ```{r significance_summary_binge_worthy, echo=FALSE}
@@ -192,6 +202,9 @@ signif_starts<-stats_results_binge_worthy %>%
   ungroup() %>%
   mutate(percent= round(prop.table(n) * 100,0)) %>% 
   filter(significance == "Significant")
+if(nrow(signif_starts) ==0) {
+  signif_starts<- data.frame(significance = "Significant", n =0, percent = 0)
+}
 
 #See how many variant combinations are significant
 signif_completes<-stats_results_binge_worthy %>%
@@ -201,9 +214,16 @@ signif_completes<-stats_results_binge_worthy %>%
   ungroup() %>%
   mutate(percent= round(prop.table(n) * 100,0)) %>%
   filter(significance == "Significant")
+if(nrow(signif_completes) ==0) {
+  signif_completes<- data.frame(significance = "Significant", n =0, percent = 0)
+}
 ```
 
-For this homepage module `r if(signif_starts$percent >60 ) {"more"} else {"less"}` than half of the metric comparisons showed significant results for the metric "starts" and `r if(signif_completes$percent >60) {"more"} else {"less"}` than half for the metric "completes".
+For the this homepage module `r if(signif_starts$percent ==100 ) {"all of the"} else if(signif_starts$percent <100 & signif_starts$percent >=60) {"most of the"} else if(signif_starts$percent <160 & signif_starts$percent >=100) {"a few of the"} else {"less than 10% of" } `  metric comparisons showed significant results for the metric "starts" and `r if(signif_completes$percent ==100 ) {"all of the"} else if(signif_completes$percent <100 & signif_completes$percent >=60) {"most of the"} else if(signif_completes$percent <160 & signif_completes$percent >=100) {"a few of the"} else {"less than 10% of" } `  metric "completes" comparisons.  There were between 1.1 and 1.5 millions clicks on the binge-wothy rail for each variant, between 700,000 and 960,000 play starts (30s metric) and between 470,000 and 680,000 play completes (90% content competion). A detailed breakdown can be found on the module specific tab.
+
+<br>
+
+Across all users, **variant three performed the best** with an uplift for play compeltes of 13.1% whilst **variant two performed the worst** at 21.3% below the control.
 
 ```{r headline_table_binge_worthy, echo=FALSE}
 
@@ -229,9 +249,130 @@ kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift 
   footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the comparison..")
 
 ```
+<br>
+
+##### Whole Homepage
+```{r significance_summary_whole_homepage, echo=FALSE}
+#See how many variant combinations are significant
+signif_starts<-stats_results_homepage %>%
+  filter(metric =='starts') %>% 
+  group_by(significance) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(percent= round(prop.table(n) * 100,0)) %>% 
+  filter(significance == "Significant")
+if(nrow(signif_starts) ==0) {
+  signif_starts<- data.frame(significance = "Significant", n =0, percent = 0)
+}
+
+#See how many variant combinations are significant
+signif_completes<-stats_results_homepage %>%
+  filter(metric =='completes') %>%
+  group_by(significance) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(percent= round(prop.table(n) * 100,0)) %>%
+  filter(significance == "Significant")
+if(nrow(signif_completes) ==0) {
+  signif_completes<- data.frame(significance = "Significant", n =0, percent = 0)
+}
+```
+
+For the whole homepage `r if(signif_starts$percent ==100 ) {"all of the"} else if(signif_starts$percent <100 & signif_starts$percent >=60) {"most of the"} else if(signif_starts$percent <160 & signif_starts$percent >=100) {"a few of the"} else {"less than 10% of" } `  metric comparisons showed significant results for the metric "starts" and `r if(signif_completes$percent ==100 ) {"all of the"} else if(signif_completes$percent <100 & signif_completes$percent >=60) {"most of the"} else if(signif_completes$percent <160 & signif_completes$percent >=100) {"a few of the"} else {"less than 10% of" } `  metric "completes" comparisons. There were aproximately 11 millions clicks on the homepage for each variant, between 8.5 million play starts (30s metric) and 6 million play completes (90% content competion). A detailed breakdown can be found on the homepage specific tab.
+
+<br>
+Across all users, **no variant had a significant impact on the homepage consumption**.
+
+```{r headline_table_whole_homepage, echo=FALSE}
+
+age_range<-'all 16+'
+rail_name<-'Homepage'
+comparison_var<- c('control') #c('control', 'var1', 'var2', 'var3')
+
+df<-left_join(
+  get_uplift_table(stats_results_homepage, age_range, 'starts', comparison_var),
+  get_uplift_table(stats_results_homepage, age_range, "completes",comparison_var),
+  by = c("variable" = "variable", "comparison"="comparison")
+)
+
+df$uplift.x<- cell_spec(df$uplift.x, color = ifelse(df$uplift.x == 'NA', 'black',ifelse(df$uplift.x>0, 'green','red')))
+df$uplift.y<- cell_spec(df$uplift.y, color = ifelse(df$uplift.y == 'NA', 'black', ifelse(df$uplift.y > 0, 'green','red')))
+ 
+##Commenting this out as the results are not significant                                                   
+# df%>% 
+# kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift (%)","Performance", "Uplift (%)"), 
+#       caption = paste0(rail_name,": ",age_range),
+#     escape = F) %>%
+#   add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
+#   kable_styling(bootstrap_options =c("striped", "scale_down","hover")) %>%
+#   footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the comparison..")
+
+
+```
 
 <br>
 
+##### Whole Product
+```{r significance_summary_whole_product, echo=FALSE}
+#See how many variant combinations are significant
+signif_starts<-stats_results_product %>%
+  filter(metric =='starts') %>% 
+  group_by(significance) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(percent= round(prop.table(n) * 100,0)) %>% 
+  filter(significance == "Significant")
+if(nrow(signif_starts) ==0) {
+  signif_starts<- data.frame(significance = "Significant", n =0, percent = 0)
+}
+
+#See how many variant combinations are significant
+signif_completes<-stats_results_product %>%
+  filter(metric =='completes') %>%
+  group_by(significance) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(percent= round(prop.table(n) * 100,0)) %>%
+  filter(significance == "Significant")
+
+if(nrow(signif_completes) ==0) {
+  signif_completes<- data.frame(significance = "Significant", n =0, percent = 0)
+}
+```
+
+For the whole product `r if(signif_starts$percent ==100 ) {"all of the"} else if(signif_starts$percent <100 & signif_starts$percent >=60) {"most of the"} else if(signif_starts$percent <160 & signif_starts$percent >=100) {"a few of the"} else {"less than 10% of" } `  metric comparisons showed significant results for the metric "starts" and `r if(signif_completes$percent ==100 ) {"all of the"} else if(signif_completes$percent <100 & signif_completes$percent >=60) {"most of the"} else if(signif_completes$percent <160 & signif_completes$percent >=100) {"a few of the"} else {"less than 10% of" } `  metric "completes" comparisons. There were aproximately 44 millions clicks on the product for each variant, 33 million play starts (30s metric) and 23 million play completes (90% content competion). A detailed breakdown can be found on the product specific tab.
+
+<br>
+Across all users, **no variant had a significant impact on the product consumption**.
+
+```{r headline_table_whole_product, echo=FALSE}
+
+age_range<-'all 16+'
+rail_name<-'product'
+comparison_var<- c('control') #c('control', 'var1', 'var2', 'var3')
+
+df<-left_join(
+  get_uplift_table(stats_results_product, age_range, 'starts', comparison_var),
+  get_uplift_table(stats_results_product, age_range, "completes",comparison_var),
+  by = c("variable" = "variable", "comparison"="comparison")
+)
+
+df$uplift.x<- cell_spec(df$uplift.x, color = ifelse(df$uplift.x == 'NA', 'black',ifelse(df$uplift.x>0, 'green','red')))
+df$uplift.y<- cell_spec(df$uplift.y, color = ifelse(df$uplift.y == 'NA', 'black', ifelse(df$uplift.y > 0, 'green','red')))
+ 
+##Commenting this out as the results are not significant                                                   
+# df%>%
+# kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift (%)","Performance", "Uplift (%)"),
+#       caption = paste0(rail_name,": ",age_range),
+#     escape = F) %>%
+#   add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
+#   kable_styling(bootstrap_options =c("striped", "scale_down","hover")) %>%
+#   footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the comparison..")
+
+
+```
+
+<br>
 
 <br>
 <br>

@@ -225,3 +225,5 @@ analyse_rail<- function(rail_name, data_path)
 #data should be of the format hashed_id, exp_group, metric 1, metric 2... etc and be saved in a .csv file
 analyse_rail(rail_name = "binge-worthy", data_path =  "vb_exp_r_output_binge-worthy")
 analyse_rail(rail_name = "editorial-new-trending", data_path =  "vb_exp_r_output_editorial_new_trending")
+analyse_rail(rail_name = "whole-homepage", data_path =  "vb_exp_r_output_homepage")
+analyse_rail(rail_name = "whole-product", data_path =  "vb_exp_r_output_product")
