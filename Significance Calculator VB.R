@@ -76,7 +76,6 @@ remove_outliers <- function (df) {
 get_uplift<- function(var_totals){
    #create empty df to fill
    uplift_values<- data.frame(variable = character(), comparison = character(), uplift = numeric())
-
    for(var_col in 2:ncol(var_totals)) {
       for(comp_col in 2:ncol(var_totals)){
          uplift <- data.frame( variable = colnames(var_totals)[var_col],
@@ -136,9 +135,10 @@ analyse<-function (experiment,age,analysis_number){
    for(col in 3:ncol(experiment)){
       exp_cleaned<-remove_outliers(experiment %>% select(hashed_id, colnames(experiment)[col], exp_group))
       names(exp_cleaned)[2]<- 'metric_value'
-      
+    
       if (col ==3 & analysis_number == 1){
          var_totals <- get_variant_totals(exp_data = experiment,exp_cleaned, col)
+         
          uplift_values<-get_uplift(var_totals)
          pValueDF<-get_p_values(exp_data = experiment, col)
          stats_results<-create_stats_results(exp_df = experiment,pValueDF, uplift_values, col)
@@ -203,12 +203,21 @@ analyse_rail<- function(rail_name, data_path)
    experiment <- experiment_data %>%select(-age_range)#select just the age range needed
    experiment <- experiment %>% select(hashed_id, exp_group, everything()) #order columns
    analyse(experiment,'all 16+', 2) #This 2 is just any value not = 1
-   head(stats_results_combined) #Show the resu;ts
+   
+   #Reshape data for use in markdown
+   var_totals_combined <<-
+      var_totals_combined %>% 
+      group_by(age_range, metric) %>% 
+      gather(key = variant, value = value, 3:6) %>%
+      spread(metric, value)
+   
    #Write to file
    write.csv(stats_results_combined, paste0("stats_results_",rail_name,".csv"), row.names = FALSE)
    print(paste0("file stats_results_",rail_name,".csv written") )
    
-   
+   #Write to file
+   write.csv(var_totals_combined, paste0("var_totals_",rail_name,".csv"), row.names = FALSE)
+   print(paste0("file var_totals_",rail_name,".csv written") )
 }
 
 
