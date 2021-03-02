@@ -36,8 +36,27 @@ library(kableExtra)
 
 ```{r read_in_data, echo=FALSE}
 
-stats_results_editorial_new_trending<- read.csv(paste0(getwd(),"/stats_results_editorial-new-trending.csv"))
-stats_results_binge_worthy<- read.csv(paste0(getwd(),"/stats_results_binge-worthy.csv"))
+stats_results_editorial_new_trending<- read.csv(paste0(getwd(),"/stats_results_editorial-new-trending.csv")) %>%filter(metric != 'clicks')
+stats_results_binge_worthy<- read.csv(paste0(getwd(),"/stats_results_binge-worthy.csv"))%>%filter(metric != 'clicks')
+
+var_totals_editorial_new_trending<-read.csv(paste0(getwd(),"/var_totals_editorial-new-trending.csv"))
+var_totals_binge_worthy<-read.csv(paste0(getwd(),"/var_totals_binge-worthy.csv"))
+
+hids_visits_summary<- read.csv(paste0(getwd(),"/hids_visits_summary.csv"))
+
+#Add an "all ages" set to hids and visits data
+hids_visits_summary<- 
+  hids_visits_summary %>% 
+  bind_rows(
+    hids_visits_summary %>%
+      group_by(exp_group) %>%
+      summarise(hids = sum(hids),visits = sum(visits)) %>%
+      mutate(age_range = 'all 16+')
+    ) %>%
+  mutate(hids2 = signif(hids, 3),
+         visits2 = signif(visits, 3)) %>%
+  select(-hids,-visits) %>%
+  rename(hids = hids2, visits = visits2)
 ```
 
 
@@ -54,6 +73,28 @@ get_uplift_table<-function(df, age_group, metric_name, comp_var){
     select(variable, comparison, metric, performance, uplift) %>%
     select(-metric)
   return(uplift_table)
+}
+
+#function to sumarise the total starts/clicks/compeltes and join to the number of hids and visits
+get_summary_values<-function(metric_df,hids_visits_df ){
+summary_values<-
+  metric_df %>%
+  mutate(
+    clicks2 = signif(clicks, 3),
+    starts2 = signif(starts, 3),
+    completes2 = signif(completes, 3)
+  ) %>%
+  select(-clicks,-starts,-completes) %>%
+  rename(clicks = clicks2,
+         starts = starts2,
+         completes = completes2) %>%
+  left_join(hids_visits_df
+,
+    by = c("age_range" = "age_range",
+           "variant" = 'exp_group')
+  ) %>%
+  select(age_range, variant, hids, visits,clicks, starts, completes)
+return(summary_values)
 }
 ```
 ## Experiment Summary & Headlines
@@ -124,7 +165,7 @@ kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift 
     escape = F) %>%
   add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
   kable_styling(latex_options =c("striped", "scale_down")) %>%
-  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the control")
+  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the control.")
 
 ```
 
@@ -161,8 +202,8 @@ rail_name<-'Binge Worthy'
 comparison_var<- c('control') #c('control', 'var1', 'var2', 'var3')
 
 df<-left_join(
-  get_uplift_table(stats_results_editorial_new_trending, age_range, 'starts', comparison_var),
-  get_uplift_table(stats_results_editorial_new_trending, age_range, "completes",comparison_var),
+  get_uplift_table(stats_results_binge_worthy, age_range, 'starts', comparison_var),
+  get_uplift_table(stats_results_binge_worthy, age_range, "completes",comparison_var),
   by = c("variable" = "variable", "comparison"="comparison")
 )
 
@@ -175,7 +216,7 @@ kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift 
     escape = F) %>%
   add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
   kable_styling(latex_options =c("striped", "scale_down")) %>%
-  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the control")
+  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the control.")
 
 ```
 
@@ -225,7 +266,7 @@ kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift 
     escape = F) %>%
   add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
   kable_styling(latex_options =c("striped", "scale_down")) %>%
-  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the control")
+  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the control.")
 
 print(table)
 }
@@ -234,10 +275,20 @@ print(table)
 
 #### Metric Summary
 
+```{r var totals new trending, echo=FALSE, results = "asis"}
+rail_name = "Editorial New and Trending"
+age_range = 'all ages'
+
+get_summary_values(var_totals_editorial_new_trending, hids_visits_summary)%>%
+  kbl(booktabs = T, 
+      col.names = c('Age Range', "Variant", "Users", "Visits", "Rail Clicks", "Starts", "Completes"),
+      caption = paste0(rail_name,": ",age_range),
+    escape = F) %>%
+  kable_styling(latex_options =c("striped", "scale_down"))
 
 
 
-
+```
 
 ##### Live Plays
 
