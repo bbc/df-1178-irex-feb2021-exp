@@ -71,7 +71,7 @@ hids_visits_summary<-
 ```
 
 ```{r write all df to excel, echo=FALSE, results = "asis"}
-##Information to completes
+##Information to complete
 start_date = "2021-02-11"
 end_date = "2021-02-24"
 exp_title = "iRex_07_February_Repeat"
@@ -150,6 +150,15 @@ return(summary_values)
 <b>DUE TO</b> the iRex sorting algorithm serving more relevant content on these rows than the current sorting algorithm provided by Think Analytics
 
 <br>
+
+#### Variants
+There were three variants and the control in this experiment. Each variant was given a different iRex algorithm and the control used a recomendation algorithm provided by Think Analytics.
+The variants and engines were:
+
+* Control saw *think-personal-iplayer-homepg-featuredsort* 
+* Variation1 saw *irex-v1.2-total-score-wnext-sorting-k-50*
+* Varaition2 saw *irex-profile-v1-sorting*
+* Variation3 saw *irex-profile-v1-wnext-sorting*
 
 #### Duration & Audience
 The experiment ran for **2 weeks** between **2021-02-11** and **2021-02-24** to **100%** of the audience on homepage. There were 4 variants (control, v1, v2, & v3) with approximately **2.3 million signed in users** in each experiment group. 
