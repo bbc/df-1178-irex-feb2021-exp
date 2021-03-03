@@ -27,6 +27,8 @@ library(grid)
 library(ggplot2)
 library(reshape2)
 library(kableExtra)
+library(rJava)
+library(xlsx) #you may have issue with this package and rJava when installing go here https://stackoverflow.com/questions/62012760/r-xlsx-package-can-not-be-used and read the "How do i tell whether the JRE is isntalled" and follow solution 2.
 ```
 
 
@@ -37,16 +39,19 @@ library(kableExtra)
 
 ```{r read_in_data, echo=FALSE}
 
-stats_results_editorial_new_trending<- read.csv(paste0(getwd(),"/stats_results_editorial-new-trending.csv")) %>%filter(metric != 'clicks')
+stats_results_edit_new_trend<- read.csv(paste0(getwd(),"/stats_results_editorial-new-trending.csv")) %>%filter(metric != 'clicks')
 stats_results_binge_worthy<- read.csv(paste0(getwd(),"/stats_results_binge-worthy.csv"))%>%filter(metric != 'clicks')
 stats_results_homepage<- read.csv(paste0(getwd(),"/stats_results_whole-homepage.csv"))%>%filter(metric != 'clicks')
 stats_results_product<- read.csv(paste0(getwd(),"/stats_results_whole-product.csv"))%>%filter(metric != 'clicks')
 
 
-var_totals_editorial_new_trending<-read.csv(paste0(getwd(),"/var_totals_editorial-new-trending.csv"))
+var_totals_edit_new_trend<-read.csv(paste0(getwd(),"/var_totals_editorial-new-trending.csv"))
 var_totals_binge_worthy<-read.csv(paste0(getwd(),"/var_totals_binge-worthy.csv"))
 var_totals_homepage<-read.csv(paste0(getwd(),"/var_totals_whole-homepage.csv"))
 var_totals_product<-read.csv(paste0(getwd(),"/var_totals_whole-product.csv"))
+
+freq<- read.csv("vb_frequency_homepage_metrics.csv")
+
 
 hids_visits_summary<- read.csv(paste0(getwd(),"/hids_visits_summary.csv"))
 
@@ -65,6 +70,34 @@ hids_visits_summary<-
   rename(hids = hids2, visits = visits2)
 ```
 
+```{r write all df to excel, echo=FALSE, results = "asis"}
+##Information to completes
+start_date = "2021-02-11"
+end_date = "2021-02-24"
+exp_title = "iRex_07_February_Repeat"
+fileName<- paste0(exp_title,"-",start_date,"_",end_date,".xlsx")
+
+#get the name of all the df in the document
+my_df_names <-ls()[sapply(ls(), function(x) class(get(x))) == 'data.frame']
+
+#load the actual data frames into a list
+dfList <- list()
+for (i in 1:length(my_df_names)) {
+  dfList[[i]] <- get(my_df_names[i])
+}
+names(dfList) <- my_df_names
+
+#Create file
+for(name in 1:length(dfList)){
+  write.xlsx(x = as.data.frame(dfList[[name]]),
+             file = fileName,
+             sheetName = my_df_names[[name]],
+             row.names = FALSE,
+             col.name = TRUE,
+             append = TRUE)
+}
+
+```
 
 ```{r define_functions, echo=FALSE}
 get_uplift_table<-function(df, age_group, metric_name, comp_var){
@@ -124,9 +157,9 @@ The experiment ran for **2 weeks** between **2021-02-11** and **2021-02-24** to 
 <br>
 
 #### Test Duration & Sample Size
-In the experiment design phase, we calculated the test should run for 2 weeks and reach 400,000 users or more to be able to see a 2% minimum detectable change.  
+In the experiment design phase, we calculated the test should run for two weeks to be able to see a 2% minimum detectable change.  
 <br>
-The experiment met both of these criteria.  
+The experiment met this criteria.  
 <br>
 
 ### Headline Results
@@ -134,9 +167,9 @@ The experiment met both of these criteria.
 <br>
 
 ##### Editorial New & Trending
-```{r significance_summary_editorial_new_trending, echo=FALSE}
+```{r significance_summary_edit_new_trend, echo=FALSE}
 #See how many variant combinations are significant
-signif_starts<-stats_results_editorial_new_trending %>%
+signif_starts<-stats_results_edit_new_trend %>%
   filter(metric =='starts') %>% 
   group_by(significance) %>%
   count() %>%
@@ -148,7 +181,7 @@ if(nrow(signif_starts) ==0) {
 }
 
 #See how many variant combinations are significant
-signif_completes<-stats_results_editorial_new_trending %>%
+signif_completes<-stats_results_edit_new_trend %>%
   filter(metric =='completes') %>%
   group_by(significance) %>%
   count() %>%
@@ -165,15 +198,15 @@ For this homepage module `r if(signif_starts$percent ==100 ) {"all of the"} else
 <br>
 Across all users, **variant three performed the best** with an uplift for play completes of 8.8% whilst **variant two performed the worst** at 5.9% below the control.
 
-```{r headline_table_editorial_new_trending, echo=FALSE}
+```{r headline_table_edit_new_trend, echo=FALSE}
 
 age_range<-'all 16+'
 rail_name<-'Editorial New Trending'
 comparison_var<- c('control') #c('control', 'var1', 'var2', 'var3')
 
 df<-left_join(
-  get_uplift_table(stats_results_editorial_new_trending, age_range, 'starts', comparison_var),
-  get_uplift_table(stats_results_editorial_new_trending, age_range, "completes",comparison_var),
+  get_uplift_table(stats_results_edit_new_trend, age_range, 'starts', comparison_var),
+  get_uplift_table(stats_results_edit_new_trend, age_range, "completes",comparison_var),
   by = c("variable" = "variable", "comparison"="comparison")
 )
 
@@ -223,7 +256,7 @@ For the this homepage module `r if(signif_starts$percent ==100 ) {"all of the"} 
 
 <br>
 
-Across all users, **variant three performed the best** with an uplift for play completes of 13.1% whilst **variant two performed the worst** at 21.3% below the control.
+Across all users, **variant three performed the best** with an uplift for play completes of 13.1% whilst **variant two performed the worst** at 21.4% below the control.
 
 ```{r headline_table_binge_worthy, echo=FALSE}
 
@@ -402,7 +435,7 @@ For most age groups **variant 2 performed the worst for both metrics**, except f
 
 
 ```{r stat results new trending, echo=FALSE, results = "asis"}
-age_ranges<-data.frame(stats_results_editorial_new_trending$age_range) %>%unique()
+age_ranges<-data.frame(stats_results_edit_new_trend$age_range) %>%unique()
 
 for(age in 1: nrow(age_ranges)) {
 age_range<-age_ranges[age,1]
@@ -411,8 +444,8 @@ comparison_var<- c('control', 'var1', 'var2', 'var3')
 
 
 df<-left_join(
-  get_uplift_table(stats_results_editorial_new_trending, age_range, 'starts', comparison_var),
-  get_uplift_table(stats_results_editorial_new_trending, age_range, "completes",comparison_var),
+  get_uplift_table(stats_results_edit_new_trend, age_range, 'starts', comparison_var),
+  get_uplift_table(stats_results_edit_new_trend, age_range, "completes",comparison_var),
   by = c("variable" = "variable", "comparison"="comparison")
 )
 
@@ -441,7 +474,96 @@ print(table)
 rail_name = "Editorial New and Trending"
 age_range = 'all ages'
 
-get_summary_values(var_totals_editorial_new_trending, hids_visits_summary)%>%
+get_summary_values(var_totals_edit_new_trend, hids_visits_summary)%>%
+  kbl(booktabs = T, 
+      col.names = c('Age Range', "Variant", "Users", "Visits", "Clicks", "Starts", "Completes"),
+      caption = paste0(rail_name,": ",age_range),
+    escape = F) %>%
+  row_spec(c(1:4,9:12), background = "#f3f1f1")%>%
+  #kable_styling(bootstrap_options = c("striped", "hover"))
+
+kable_styling(bootstrap_options =c("hover","scale_down"))
+
+
+
+
+```
+
+
+*****
+
+
+<br>
+<br>
+
+
+
+
+<br>
+<br>
+<br>
+<b>Contact</b> <br>
+email: `dataforce@bbc.co.uk`<br>
+slack: #help-data-force
+
+## Binge-Worthy
+
+<br>
+
+### Statistical Overview
+
+To assess the difference between our control and variant group we ran a parametric test (t-test) to establish the mean differences between each group for each metric and if the difference is statistically significant.  
+
+
+A p-value < 0.05 indicates the difference is statistically significant, we can reject the null hypothesis and conclude the difference seen is not due to chance.  
+<br>
+<br>
+
+### Statistical Results by Age Range
+For all age groups **variant 2 performed the worst for both metrics**. Where a statistical difference was observed,  **variant three showed the highest uplift across both metrics** in comparison to the control and variations one and two. 
+
+
+```{r stat results binge-worthy, echo=FALSE, results = "asis"}
+age_ranges<-data.frame(stats_results_binge_worthy$age_range) %>%unique()
+
+for(age in 1: nrow(age_ranges)) {
+age_range<-age_ranges[age,1]
+rail_name<-'Binge-Worthy'
+comparison_var<- c('control', 'var1', 'var2', 'var3')
+
+
+df<-left_join(
+  get_uplift_table(stats_results_binge_worthy, age_range, 'starts', comparison_var),
+  get_uplift_table(stats_results_binge_worthy, age_range, "completes",comparison_var),
+  by = c("variable" = "variable", "comparison"="comparison")
+)
+
+df$uplift.x<- cell_spec(df$uplift.x, color = ifelse(df$uplift.x == 'NA', 'black',ifelse(df$uplift.x>0, 'green','red')))
+df$uplift.y<- cell_spec(df$uplift.y, color = ifelse(df$uplift.y == 'NA', 'black', ifelse(df$uplift.y > 0, 'green','red')))
+                                                    
+table<-df%>% 
+kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift (%)","Performance", "Uplift (%)"), 
+      caption = paste0(rail_name,": ",age_range),
+    escape = F) %>%
+  add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
+  kable_styling(bootstrap_options =c("striped", "scale_down","hover")) %>%
+  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the comparison.")
+
+print(table)
+}
+
+```
+
+<br>
+
+### Metric Summary
+
+```{r var totals binge-worthy, echo=FALSE, results = "asis"}
+
+rail_name = "Binge-Worthy"
+age_range = 'all ages'
+
+get_summary_values(var_totals_binge_worthy, hids_visits_summary)%>%
   kbl(booktabs = T, 
       col.names = c('Age Range', "Variant", "Users", "Visits", "Clicks", "Starts", "Completes"),
       caption = paste0(rail_name,": ",age_range),
@@ -474,3 +596,266 @@ email: `dataforce@bbc.co.uk`<br>
 slack: #help-data-force
 
 
+## Whole Homepage
+
+<br>
+
+### Statistical Overview
+
+To assess the difference between our control and variant group we ran a parametric test (t-test) to establish the mean differences between each group for each metric and if the difference is statistically significant.  
+
+
+A p-value < 0.05 indicates the difference is statistically significant, we can reject the null hypothesis and conclude the difference seen is not due to chance.  
+<br>
+<br>
+
+### Statistical Results by Age Range
+There was no significant difference in consumption of content between most of the variants across most of the age ranges when considering the homepage as a whole. A few variants did show a slight uplift against another for play starts and play completes however the uplift was not particularly large.
+
+```{r stat results homepage, echo=FALSE, results = "asis"}
+age_ranges<-data.frame(stats_results_homepage$age_range) %>%unique()
+
+for(age in 1: nrow(age_ranges)) {
+age_range<-age_ranges[age,1]
+rail_name<-'Homepage'
+comparison_var<- c('control', 'var1', 'var2', 'var3')
+
+
+df<-left_join(
+  get_uplift_table(stats_results_homepage, age_range, 'starts', comparison_var),
+  get_uplift_table(stats_results_homepage, age_range, "completes",comparison_var),
+  by = c("variable" = "variable", "comparison"="comparison")
+)
+
+df$uplift.x<- cell_spec(df$uplift.x, color = ifelse(df$uplift.x == 'NA', 'black',ifelse(df$uplift.x>0, 'green','red')))
+df$uplift.y<- cell_spec(df$uplift.y, color = ifelse(df$uplift.y == 'NA', 'black', ifelse(df$uplift.y > 0, 'green','red')))
+                                                    
+table<-df%>% 
+kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift (%)","Performance", "Uplift (%)"), 
+      caption = paste0(rail_name,": ",age_range),
+    escape = F) %>%
+  add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
+  kable_styling(bootstrap_options =c("striped", "scale_down","hover")) %>%
+  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the comparison.")
+
+print(table)
+}
+
+```
+
+<br>
+
+### Metric Summary
+
+```{r var totals homepage, echo=FALSE, results = "asis"}
+
+rail_name = "Homepage"
+age_range = 'all ages'
+
+get_summary_values(var_totals_homepage, hids_visits_summary)%>%
+  kbl(booktabs = T, 
+      col.names = c('Age Range', "Variant", "Users", "Visits", "Clicks", "Starts", "Completes"),
+      caption = paste0(rail_name,": ",age_range),
+    escape = F) %>%
+  row_spec(c(1:4,9:12), background = "#f3f1f1")%>%
+  #kable_styling(bootstrap_options = c("striped", "hover"))
+
+kable_styling(bootstrap_options =c("hover","scale_down"))
+
+
+
+
+```
+
+
+*****
+
+
+<br>
+<br>
+
+
+
+
+<br>
+<br>
+<br>
+<b>Contact</b> <br>
+email: `dataforce@bbc.co.uk`<br>
+slack: #help-data-force
+
+## Whole Product
+
+<br>
+
+### Statistical Overview
+
+To assess the difference between our control and variant group we ran a parametric test (t-test) to establish the mean differences between each group for each metric and if the difference is statistically significant.  
+
+
+A p-value < 0.05 indicates the difference is statistically significant, we can reject the null hypothesis and conclude the difference seen is not due to chance.  
+<br>
+<br>
+
+### Statistical Results by Age Range
+There was **no significant difference in consumption of content** between any of the variants across all of the age ranges when considering the product as a whole. 
+
+
+```{r stat results product, echo=FALSE, results = "asis"}
+age_ranges<-data.frame(stats_results_product$age_range) %>%unique()
+
+for(age in 1: nrow(age_ranges)) {
+age_range<-age_ranges[age,1]
+rail_name<-'Product'
+comparison_var<- c('control', 'var1', 'var2', 'var3')
+
+
+df<-left_join(
+  get_uplift_table(stats_results_product, age_range, 'starts', comparison_var),
+  get_uplift_table(stats_results_product, age_range, "completes",comparison_var),
+  by = c("variable" = "variable", "comparison"="comparison")
+)
+
+df$uplift.x<- cell_spec(df$uplift.x, color = ifelse(df$uplift.x == 'NA', 'black',ifelse(df$uplift.x>0, 'green','red')))
+df$uplift.y<- cell_spec(df$uplift.y, color = ifelse(df$uplift.y == 'NA', 'black', ifelse(df$uplift.y > 0, 'green','red')))
+                                                    
+table<-df%>% 
+kbl(booktabs = T, col.names = c("Variant", "Comparison", "Performance", "Uplift (%)","Performance", "Uplift (%)"), 
+      caption = paste0(rail_name,": ",age_range),
+    escape = F) %>%
+  add_header_above(c(" " = 2,"Starts" =2, "Completes" = 2 ))%>%
+  kable_styling(bootstrap_options =c("striped", "scale_down","hover")) %>%
+  footnote(general = "Uplift is calculated for the variant relative to the control. A negative value means the variant performed worse than the comparison.")
+
+print(table)
+}
+
+```
+
+<br>
+
+### Metric Summary
+
+```{r var totals product, echo=FALSE, results = "asis"}
+
+rail_name = "Product"
+age_range = 'all ages'
+
+get_summary_values(var_totals_product, hids_visits_summary)%>%
+  kbl(booktabs = T, 
+      col.names = c('Age Range', "Variant", "Users", "Visits", "Clicks", "Starts", "Completes"),
+      caption = paste0(rail_name,": ",age_range),
+    escape = F) %>%
+  row_spec(c(1:4,9:12), background = "#f3f1f1")%>%
+  #kable_styling(bootstrap_options = c("striped", "hover"))
+
+kable_styling(bootstrap_options =c("hover","scale_down"))
+
+
+
+
+```
+
+
+*****
+
+
+<br>
+<br>
+
+
+
+
+<br>
+<br>
+<br>
+<b>Contact</b> <br>
+email: `dataforce@bbc.co.uk`<br>
+slack: #help-data-force
+
+
+
+## User Frequency
+
+To considerer if users with different frequency of visits iPlayer were treated differently or responded differently to the experiment a few checks were made. 
+
+<br>
+
+##### Signed in Users
+The same proportion of users from each frequency group were placed into each variant. This suggests that no variant was skewed towards heavy or light iPlayer users who might have responded differently to recommendations.
+
+```{r freq groups hids, echo=FALSE, results = "asis"}
+## Get a table showing the percentage split of users across the frequency bands
+freq %>% 
+  group_by(exp_group, frequency_group_aggregated, frequency_band) %>%
+  summarise(hids = signif(sum(hids),3)) %>%
+  spread(key = exp_group, value = hids) %>%
+  ungroup()%>%
+  mutate(control_perc = paste0(round(100*control/sum(control),0),"%"),
+         var1_perc = paste0(round(100*var1/sum(var1),0),"%"),
+         var2_perc = paste0(round(100*var2/sum(var2),0),"%"),
+         var3_perc = paste0(round(100*var3/sum(var3),0),"%")
+         )%>%
+  select(-control, -var1, -var2, -var3)%>%
+  rename(control = control_perc,
+         var1 = var1_perc,
+         var2 = var2_perc,
+         var3 = var3_perc
+         )%>%
+arrange(frequency_band)%>% 
+kbl(booktabs = T, col.names = c("Aggregated Group", "Band", "Control", "Var1","Var2", "Var3"), 
+      caption = "Percentage of users in each frequency group.",
+    escape = F) %>%
+  add_header_above(c("Frequency" = 2,"Percentage of Signed in Users" =4))%>%
+  kable_styling(bootstrap_options =c("striped", "scale_down","hover")) 
+```
+
+<br>
+
+##### Play Completes from the Homepage
+The percentage of play completes coming from clicks on the homepage across each frequency group was the same for all variants. This supports the above results in suggesting that no variant was affected differently by users of different frequencies. This was true for clicks on the homepage, play starts and play completes. 
+
+```{r freq groups completes, echo=FALSE, results = "asis"}
+## Get a table showing the percentage split of users across the frequency bands
+freq %>% 
+  group_by(exp_group, frequency_group_aggregated, frequency_band) %>%
+  summarise(completes = signif(sum(completes),3)) %>%
+  spread(key = exp_group, value = completes) %>%
+  ungroup()%>%
+  mutate(control_perc = paste0(round(100*control/sum(control),0),"%"),
+         var1_perc = paste0(round(100*var1/sum(var1),0),"%"),
+         var2_perc = paste0(round(100*var2/sum(var2),0),"%"),
+         var3_perc = paste0(round(100*var3/sum(var3),0),"%")
+         )%>%
+  select(-control, -var1, -var2, -var3)%>%
+  rename(control = control_perc,
+         var1 = var1_perc,
+         var2 = var2_perc,
+         var3 = var3_perc
+         )%>%
+arrange(frequency_band)%>% 
+kbl(booktabs = T, col.names = c("Aggregated Group", "Band", "Control", "Var1","Var2", "Var3"), 
+      caption = "Percentage of completes coming from users in each frequency group.",
+    escape = F) %>%
+  add_header_above(c("Frequency" = 2,"Percentage of Play Completes" =4))%>%
+  kable_styling(bootstrap_options =c("striped", "scale_down","hover")) 
+
+
+
+```
+
+*****
+
+
+<br>
+<br>
+
+
+
+
+<br>
+<br>
+<br>
+<b>Contact</b> <br>
+email: `dataforce@bbc.co.uk`<br>
+slack: #help-data-force
