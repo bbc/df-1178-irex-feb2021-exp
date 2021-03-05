@@ -28,7 +28,6 @@ getPackage("kableExtra")
 getPackage("userfriendlyscience")
 
 ## Run remove_outliers function
-### Execute the following code to create the remove_outliers function ###
 ### This function will remove outliers greater than than 3 standard deviations away from the mean ###
 remove_outliers <- function (df) {
   y <- df[2][df[2] > 0] #remove any zero values

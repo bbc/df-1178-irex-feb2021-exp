@@ -38,7 +38,8 @@ library(xlsx) #you may have issue with this package and rJava when installing go
 ```
 
 ```{r read_in_data, echo=FALSE}
-
+###### USER ACTION REQUIRED ######
+#You will need to write in the names of the files you generate from the significance calculator
 stats_results_edit_new_trend<- read.csv(paste0(getwd(),"/stats_results_editorial-new-trending.csv")) %>%filter(metric != 'clicks')
 stats_results_binge_worthy<- read.csv(paste0(getwd(),"/stats_results_binge-worthy.csv"))%>%filter(metric != 'clicks')
 stats_results_homepage<- read.csv(paste0(getwd(),"/stats_results_whole-homepage.csv"))%>%filter(metric != 'clicks')
@@ -50,9 +51,9 @@ var_totals_binge_worthy<-read.csv(paste0(getwd(),"/var_totals_binge-worthy.csv")
 var_totals_homepage<-read.csv(paste0(getwd(),"/var_totals_whole-homepage.csv"))
 var_totals_product<-read.csv(paste0(getwd(),"/var_totals_whole-product.csv"))
 
+###### USER ACTION REQUIRED ######
+#Write in the names of the frequecy files and hids/visits files you daved from redshift.
 freq<- read.csv("vb_frequency_homepage_metrics.csv")
-
-
 hids_visits_summary<- read.csv(paste0(getwd(),"/hids_visits_summary.csv"))
 
 #Add an "all ages" set to hids and visits data
@@ -71,11 +72,13 @@ hids_visits_summary<-
 ```
 
 ```{r write all df to excel, echo=FALSE, results = "asis"}
+
+###### USER ACTION REQUIRED ######
 ##Information to complete
 start_date = "2021-02-11"
 end_date = "2021-02-24"
 exp_title = "iRex_07_February_Repeat"
-fileName<- paste0(exp_title,"-",start_date,"_",end_date,".xlsx")
+fileName<- paste0(exp_title,"-",start_date,"_",end_date,".xlsx") #this is for the output file's name
 
 #get the name of all the df in the document
 my_df_names <-ls()[sapply(ls(), function(x) class(get(x))) == 'data.frame']
