@@ -56,6 +56,7 @@ getPackage("kableExtra")
 #This function will remove outliers greater than than 3 standard deviations away from the mean ###
 remove_outliers <- function (df) {
    y <- df[2][df[2] > 0] #remove any zero values
+   
    dfNoOutliers<- df%>% filter(df[2]< 3*sd(y) + mean(y)) #remove any outliers
    valsremaining <- length(dfNoOutliers)/length(df)
    valsremaining
@@ -104,13 +105,13 @@ get_p_values<-function(exp_data, metric_col){
 }
 
 ######### Create statistical results table #########
-create_stats_results<- function(exp_df, pValueDF, uplift_values, metric_col){
+create_stats_results<- function(exp_df, pValueDF, uplift_values, metric_name){
    stats_results<- 
       pValueDF %>% 
       left_join(uplift_values, 
                 by = c("variable"="variable", 
                        "comparison"="comparison"))%>%
-      mutate(metric = colnames(exp_df)[metric_col],
+      mutate(metric = metric_name,
              performance = ifelse( uplift > 0, 
                                    paste0(variable, " outperformed ", comparison),
                                    paste0(comparison, " outperformed ", variable) )
@@ -132,28 +133,46 @@ get_variant_totals<-function(exp_data, exp_cleaned, metric_col){
 
 ######### Remove outliers, calcualte uplift and statistical significance for each metric #########
 analyse<-function (experiment,age,analysis_number){
-   for(col in 3:ncol(experiment)){
+   
+   for(col in 3:ncol(experiment)){ #this loops the process over every metric there is
+      print(colnames(experiment)[col])
+      #For each metric remove the outliers and return the df with hid and the one metric
       exp_cleaned<-remove_outliers(experiment %>% select(hashed_id, colnames(experiment)[col], exp_group))
-      names(exp_cleaned)[2]<- 'metric_value'
+      names(exp_cleaned)[2]<- 'metric_value' #change the name of the metric column to be generic to use later
     
-      if (col ==3 & analysis_number == 1){
+      if (col ==3 & analysis_number == 1){ #the first time through it creates the DF, every other time it appends.
+         
+         #This sums the current metric for each variant and adds a column with the metric's name
          var_totals <- get_variant_totals(exp_data = experiment,exp_cleaned, col)
          
+         #This calculates the uplift for every variant compared to every other (for the current metric)
          uplift_values<-get_uplift(var_totals)
-         pValueDF<-get_p_values(exp_data = experiment, col)
-         stats_results<-create_stats_results(exp_df = experiment,pValueDF, uplift_values, col)
-
+         
+         #This calculates the statistical significance between variant groups
+         pValueDF<-get_p_values(exp_data = exp_cleaned, 2)
+ 
+         #This combines the result from the above functions into one df and defines results as significant or not.
+         stats_results<-create_stats_results(exp_df = exp_cleaned, pValueDF, uplift_values, metric_name =colnames(experiment)[col])
+         
+         #The results are prepared into a df
          var_totals_combined<-data.frame(age_range = age) %>% bind_cols(var_totals)
          stats_results_combined<-data.frame(age_range = age) %>% bind_cols(stats_results)
         
       }
-      else{
+      else{ #This is for every run but the first where the final dfs already exist
 
-         var_totals<-get_variant_totals(exp_data = experiment,exp_cleaned, col)
+         #This sums the current metric for each variant and adds a column with the metric's name
+         var_totals <- get_variant_totals(exp_data = experiment,exp_cleaned, col)
+         
+         #This calculates the uplift for every variant compared to every other (for the current metric)
          uplift_values<-get_uplift(var_totals)
-         pValueDF<-get_p_values(exp_data = experiment,col)
-         stats_results<-create_stats_results(exp_df = experiment,pValueDF, uplift_values, col)
-
+         
+         #This calculates the statistical significance between variant groups
+         pValueDF<-get_p_values(exp_data = exp_cleaned, 2)
+         
+         #This combines the result from the above functions into one df and defines results as significant or not.
+         stats_results<-create_stats_results(exp_df = exp_cleaned, pValueDF, uplift_values, metric_name =colnames(experiment)[col])
+         
          var_totals_combined<- var_totals_combined %>% bind_rows(data.frame(age_range = age) %>% bind_cols(var_totals))
          stats_results_combined<- stats_results_combined %>% bind_rows(data.frame(age_range = age) %>% bind_cols(stats_results))
       }
