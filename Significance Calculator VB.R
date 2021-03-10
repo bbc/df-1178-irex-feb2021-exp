@@ -58,8 +58,7 @@ remove_outliers <- function (df) {
    y <- df[2][df[2] > 0] #remove any zero values
    
    dfNoOutliers<- df%>% filter(df[2]< 3*sd(y) + mean(y)) #remove any outliers
-   valsremaining <- length(dfNoOutliers)/length(df)
-   valsremaining
+   valsremaining <- nrow(dfNoOutliers)/nrow(df)
    
    if (valsremaining < 0.95){
       stop ("This function will remove more than 5% percent of your data. You need to remove outliers manually.")}
