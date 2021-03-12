@@ -21,12 +21,10 @@ remove_outliers <- function (df) {
 }
 
 experiment_data <- read.csv("vb_exp_r_output_editorial_new_trending.csv")
-experiment_data$clicks %>% head()
 
 #Find how many users have each number of metrics
 #full_data<-
-experiment_data %>% 
-  spread(key= age_range, value = completes)
+experiment_data %>%
   select(completes) %>%
   group_by(completes) %>%
   count() %>%
@@ -43,5 +41,21 @@ outliers_removed<-remove_outliers(experiment_data %>%select(hashed_id, completes
   mutate(perc_of_total = round(100 * n / sum(n)))
 
 
+## So many users never completed anything from this rail - check whole homeapge
+product_data<- read.csv("vb_exp_r_output_product.csv")
+#full_data<-
+product_data %>%
+  select(starts) %>%
+  group_by(starts) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(perc_of_total = round(100 * n / sum(n)))
 
-
+#How about if we remove outliers
+outliers_removed<-remove_outliers(product_data %>%select(hashed_id, starts))
+#cleaned_data<-
+outliers_removed %>% select(starts) %>%
+  group_by(starts) %>%
+  count() %>%
+  ungroup() %>%
+  mutate(perc_of_total = round(100 * n / sum(n)))
